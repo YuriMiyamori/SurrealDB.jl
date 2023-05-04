@@ -383,6 +383,11 @@ end
 Closes the persistent connection to the database.
 """
 function close(db::Surreal)
+    if db.client_state != ConnectionState(2)
+        throw(Exception("DB is alredy closed!"))
+    elseif db.client_state != ConnectionState(0)
+        throw(Exception("DB is not connected yet!"))
+    end
     close(db.ws)
     db.client_state = DISCONNECTED
 end
@@ -409,10 +414,9 @@ Send a request to the Surreal server and receive a response.
 The response from the Surreal server.
 # Raises
 Exception: If the client is not connected to the Surreal server.
-Exception: If the client is not connected to the Surreal server.
 Exception: If the response contains an error.
 """
-function send_receive(db::Surreal, params::Dict)::Union{Nothing, Dict{String, Any}}
+function send_receive(db::Surreal, params::Dict{String, Any})::Union{Nothing, Dict{String, Any}, Vector{Dict{String, Any}}}
 
     # Check Connection State
     if db.client_state != ConnectionState(1)
@@ -428,16 +432,11 @@ function send_receive(db::Surreal, params::Dict)::Union{Nothing, Dict{String, An
         throw(ErrorException(response["error"]))
     end
 
-    # result Union{Nothing, Vector}
     result = response["result"] 
-    println(response)
-    if isnothing(result)
-        return result
-    elseif length(result) == 1
-        return result[1]
-    else
-        throw(ErrorException("vector length !=1"))
-        # return result
-    end
+    isnothing(result) && return nothing
+
+    result = convert(Vector{Dict{String, Any}}, result)
+    length(result) == 1 && return result[1]
+    return result #Nothing or Vector{Any}
 end
 end
