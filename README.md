@@ -1,9 +1,9 @@
 # SurrealDB
 
-The SurrealDB driver for Julia (unofficial)
+The [SurrealDB](https://surrealdb.com) driver for Julia (unofficial)
 
 # Getting Started
-First install [SurrealDB](https://surrealdb.com/install) if you haven't already.
+First [install SurrealDB](https://surrealdb.com/install) if you haven't already.
 
 ## Installation
 ```julia
