@@ -51,6 +51,33 @@ end
 Surreal(url::Union{Nothing, String}=nothing, token::Union{Nothing, String}=nothing) = Surreal(url, token, CONNECTING, nothing)
 
 """
+    Surreal(f::Function, url::Union{Nothing, String}=nothing, token::Union{Nothing, String}=nothing)
+Apply the function `f` to the result of `Surreal(url, token)` and close the db
+descriptor upon completion.
+# Examples
+```jldoctest
+julia> Surreal("ws://db:8000/rpc") do db
+            connect(db)
+            signin(db,user="root", pass="root")
+            use(db, namespace="test", database="test")
+            create(db, thing="person",
+                    data = Dict("user"=> "me","pass"=> "safe","marketing"=> true,
+                                "tags"=> ["python", "documentation"]))
+            update(db, thing="person",
+                    data = Dict("user"=> "you","pass"=> "very safe","marketing"=> true,
+                                "tags"=> ["python", "good"]))
+        end
+```
+"""
+function Surreal(f::Function, url::Union{Nothing, String}=nothing, token::Union{Nothing, String}=nothing)
+    db = Surreal(url, token)
+    try
+        f(db)
+    finally
+        close(db)
+    end
+end
+"""
     connect(db::Surreal, url::Union{Nothing, String}=nothing)
 connect to a local or remote database endpoint
 # Examples
@@ -87,6 +114,8 @@ function connect(db::Surreal, url::Union{Nothing, String}=nothing)
     db.client_state = CONNECTED
     nothing
 end
+
+
 
 """
     signin(db::Surreal; user::String, pass::String)::Union{String, Nothing}
@@ -383,12 +412,9 @@ end
 Closes the persistent connection to the database.
 """
 function close(db::Surreal)
-    if db.client_state != ConnectionState(2)
-        throw(Exception("DB is alredy closed!"))
-    elseif db.client_state != ConnectionState(0)
-        throw(Exception("DB is not connected yet!"))
+    if db.client_state == CONNECTED
+        close(db.ws)
     end
-    close(db.ws)
     db.client_state = DISCONNECTED
 end
 
@@ -419,7 +445,7 @@ Exception: If the response contains an error.
 function send_receive(db::Surreal, params::Dict{String, Any})::Union{Nothing, Dict{String, Any}, Vector{Dict{String, Any}}}
 
     # Check Connection State
-    if db.client_state != ConnectionState(1)
+    if db.client_state != CONNECTED
         throw(ErrorException("Not connected to Surreal server."))
     end
 
