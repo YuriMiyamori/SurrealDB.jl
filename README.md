@@ -18,10 +18,10 @@ Pkg.add("SurrealDB")
 db = Surreal("ws://127.0.0.1:8000/rpc")
 connect(db)
 signin(db,user="root", pass="root")
-use(db, namespace="test", database="test") |> display
+use(db, namespace="test", database="test")
 create(db, thing="person",
         data = Dict("user"=> "me","pass"=> "safe","marketing"=> true,
-            "tags"=> ["python", "documentation"])) |> display
+            "tags"=> ["python", "documentation"]))
 update(db, thing="person",
         data = Dict("user"=> "you","pass"=> "very safe","marketing"=> true,
            "tags"=> ["python", "good"]))

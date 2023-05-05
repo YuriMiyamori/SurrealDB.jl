@@ -1,6 +1,5 @@
 # Documentation: http://docs.travis-ci.com/user/languages/julia
 codecov: true
-coveralls: true
 
 language: julia
 notifications:
