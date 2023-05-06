@@ -12,7 +12,7 @@ First [install SurrealDB](https://surrealdb.com/install) if you haven't already.
 ## Installation
 ```julia
 using Pkg
-Pkg.add("Surrealdb")
+Pkg.add("SurrealdbWS")
 ```
 
 ## Usage
