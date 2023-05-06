@@ -42,13 +42,13 @@ db = Surreal("http://cloud.surrealdb.com/rpc")
 ```
 """
 mutable struct Surreal
-    url::Union{Nothing, String}
+    url::String
     token::Union{Nothing, String}
     client_state::ConnectionState
     ws::Union{Nothing, WebSocket}
 end
 
-Surreal(url::Union{Nothing, String}=nothing, token::Union{Nothing, String}=nothing) = Surreal(url, token, CONNECTING, nothing)
+Surreal(url::String, token::Union{Nothing, String}=nothing) = Surreal(url, token, CONNECTING, nothing)
 
 """
     Surreal(f::Function, url::Union{Nothing, String}=nothing, token::Union{Nothing, String}=nothing)
@@ -69,7 +69,7 @@ julia> Surreal("ws://db:8000/rpc") do db
         end
 ```
 """
-function Surreal(f::Function, url::Union{Nothing, String}=nothing, token::Union{Nothing, String}=nothing)
+function Surreal(f::Function, url::String, token::Union{Nothing, String}=nothing)
     db = Surreal(url, token)
     try
         f(db)
@@ -91,10 +91,7 @@ julia> connect(db,"http://cloud.surrealdb.com/rpc")
 julia> signin(db, user="root", pass="root")
 ```
 """
-function connect(db::Surreal, url::Union{Nothing, String}=nothing)
-    if !isnothing(url)
-        db.url = url
-    end
+function connect(db::Surreal)
     if occursin("https", db.url)
         db.url = replace(db.url, "https://" => "wss://")
     elseif occursin("http", db.url)
@@ -442,7 +439,7 @@ The response from the Surreal server.
 Exception: If the client is not connected to the Surreal server.
 Exception: If the response contains an error.
 """
-function send_receive(db::Surreal, params::Dict{String, Any})::Union{Nothing, Dict{String, Any}, Vector{Dict{String, Any}}}
+function send_receive(db::Surreal, params::Dict)::Union{Nothing, Dict{String, Any}, Vector{Dict{String, Any}}}
 
     # Check Connection State
     if db.client_state != CONNECTED
@@ -452,10 +449,11 @@ function send_receive(db::Surreal, params::Dict{String, Any})::Union{Nothing, Di
     # Send & Recieve
     send(db.ws, json(params))
     response = parse(receive(db.ws))
+    # println(response)
 
     # Check Error
     if haskey(response, "error")
-        throw(ErrorException(response["error"]))
+        throw(ErrorException(response["error"]["message"]))
     end
 
     result = response["result"] 
