@@ -5,11 +5,11 @@ PORT = 8000
 @testset "Surrealdb.jl" begin
     # Surreal
     db = Surreal("ws://localhost:$PORT")
-    @test db.client_state == SurrealDB.ConnectionState(0)
+    @test db.client_state == Surrealdb.ConnectionState(0)
 
     #connect
     connect(db)
-    @test db.client_state == SurrealDB.ConnectionState(1)
+    @test db.client_state == Surrealdb.ConnectionState(1)
 
     # signin
     res = signin(db, user="root", pass="root")
@@ -51,5 +51,5 @@ PORT = 8000
     #ping
     @test ping(db)===nothing
     #close
-    @test close(db)==SurrealDB.ConnectionState(2)
+    @test close(db)==Surrealdb.ConnectionState(2)
 end
