@@ -1,4 +1,4 @@
-# SurrealdbWS
+# Surrealdb
 [![Build Status](https://travis-ci.com/YuriMiyamori/SurrealDB.jl.svg?branch=main)](https://travis-ci.com/YuriMiyamori/SurrealDB.jl)
 [![Coverage](https://codecov.io/gh/YuriMiyamori/SurrealDB.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/YuriMiyamori/SurrealDB.jl)
 [![Coverage](https://coveralls.io/repos/github/YuriMiyamori/SurrealDB.jl/badge.svg?branch=main)](https://coveralls.io/github/YuriMiyamori/SurrealDB.jl?branch=main)
@@ -12,7 +12,7 @@ First [install SurrealDB](https://surrealdb.com/install) if you haven't already.
 ## Installation
 ```julia
 using Pkg
-Pkg.add("SurrealDB")
+Pkg.add("Surrealdb")
 ```
 
 ## Usage
