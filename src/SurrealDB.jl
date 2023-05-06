@@ -3,6 +3,7 @@ module SurrealDB
 export Surreal,
 connect,
 signin,
+signup,
 use,
 select,
 create,
@@ -449,7 +450,7 @@ function send_receive(db::Surreal, params::Dict)::Union{Nothing, Dict{String, An
     # Send & Recieve
     send(db.ws, json(params))
     response = parse(receive(db.ws))
-    # println(response)
+    println(response)
 
     # Check Error
     if haskey(response, "error")

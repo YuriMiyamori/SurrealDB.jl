@@ -1,7 +1,7 @@
 using SurrealDB
 using Test
 
-const PORT = 8000
+PORT = 8000
 @testset "SurrealDB.jl" begin
     # Surreal
     db = Surreal("ws://localhost:$PORT")
@@ -15,6 +15,8 @@ const PORT = 8000
     res = signin(db, user="root", pass="root")
     @test res===nothing
 
+    res = signup(db, user="test_user", pass="test_user")
+    @test res===nothing
     #use
     res = use(db, namespace="test", database="test")
     @test res===nothing
