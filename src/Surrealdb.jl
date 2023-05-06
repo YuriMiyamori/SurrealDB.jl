@@ -1,4 +1,4 @@
-module SurrealDB
+module Surrealdb
 
 export Surreal,
 connect,

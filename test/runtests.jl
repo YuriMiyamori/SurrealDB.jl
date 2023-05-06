@@ -2,7 +2,7 @@ using SurrealDB
 using Test
 
 PORT = 8000
-@testset "SurrealDB.jl" begin
+@testset "Surrealdb.jl" begin
     # Surreal
     db = Surreal("ws://localhost:$PORT")
     @test db.client_state == SurrealDB.ConnectionState(0)
