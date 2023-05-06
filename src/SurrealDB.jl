@@ -412,6 +412,7 @@ function close(db::Surreal)
     if db.client_state == CONNECTED
         close(db.ws)
     end
+
     db.client_state = DISCONNECTED
 end
 
@@ -440,7 +441,6 @@ Exception: If the client is not connected to the Surreal server.
 Exception: If the response contains an error.
 """
 function send_receive(db::Surreal, params::Dict)::Union{Nothing, Dict{String, Any}, Vector{Dict{String, Any}}}
-
     # Check Connection State
     if db.client_state != CONNECTED
         throw(ErrorException("Not connected to Surreal server."))
