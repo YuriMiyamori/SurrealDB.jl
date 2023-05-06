@@ -1,6 +1,53 @@
 using SurrealDB
 using Test
 
+const PORT = 8001
 @testset "SurrealDB.jl" begin
-    # Write your tests here.
+    # Surreal
+    db = Surreal("ws://localhost:$PORT")
+    @test db.client_state == SurrealDB.ConnectionState(0)
+
+    #connect
+    connect(db)
+    @test db.client_state == SurrealDB.ConnectionState(1)
+
+    # signin
+    res = signin(db, user="root", pass="root")
+    @test res===nothing
+
+    #use
+    res = use(db, namespace="test", database="test")
+    @test res===nothing
+
+    # create
+    data = Dict("user"=> "me","pass"=> "safe","marketing"=> true, "tags"=> ["python", "documentation"])
+    res = create(db, thing="person", data = data)
+    delete!(res, "id")
+    @test isequal(data, res)
+
+    #update
+    data = Dict("user"=> "you","pass"=> "very safe","marketing"=> true, "tags"=> ["python", "good"])
+    res = update(db, thing="person", data = data)
+    delete!(res, "id")
+    @test isequal(data, res)
+
+    #query
+    res = query(db, sql="""update person content {
+            user: 'mark1',
+            pass: 'more_safe2',
+            tags: ['awesome2']
+        };"""
+    )
+    @test res["status"] == "OK"
+    
+    #delete
+    res = delete(db, thing="person")
+    @test(typeof(res)==Vector{Dict{String, Any}})
+
+    #info
+    @test info(db)===nothing
+    #ping
+    @test ping(db)===nothing
+    #close
+    @test close(db)==SurrealDB.ConnectionState(2)
 end
