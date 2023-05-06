@@ -2,6 +2,8 @@
 codecov: true
 
 language: julia
+services:
+  - docker
 notifications:
   email: false
 julia:
@@ -18,6 +20,8 @@ jobs:
   fast_finish: true
   allow_failures:
     - julia: nightly
+before_install:
+- docker run --pull=always --rm -p 8000:8000 surrealdb/surrealdb:latest start --log debug --user root --pass root memory > /dev/null 2>&1 &
 after_success:
   - |
     julia -e '
