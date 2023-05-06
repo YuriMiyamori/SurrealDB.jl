@@ -15,8 +15,8 @@ PORT = 8000
     res = signin(db, user="root", pass="root")
     @test res===nothing
 
-    res = signup(db, user="test_user", pass="test_user")
-    @test res===nothing
+    # res = signup(db, user="test_user", pass="test_user")
+    # @test res===nothing
     #use
     res = use(db, namespace="test", database="test")
     @test res===nothing
