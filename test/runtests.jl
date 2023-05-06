@@ -1,7 +1,7 @@
 using SurrealDB
 using Test
 
-const PORT = 8001
+const PORT = 8000
 @testset "SurrealDB.jl" begin
     # Surreal
     db = Surreal("ws://localhost:$PORT")

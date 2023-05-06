@@ -8,7 +8,7 @@ notifications:
   email: false
 julia:
   - 1.8
-  - nightly
+  # - nightly
 os:
   - linux
 arch:
