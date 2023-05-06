@@ -1,4 +1,4 @@
-using SurrealDB
+using Surrealdb
 using Test
 
 PORT = 8000
