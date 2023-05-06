@@ -1,4 +1,4 @@
-name = "Surrealdb"
+name = "SurrealdbWS"
 uuid = "7b3dffa2-a94d-4703-aaf5-57911c725dc8"
 authors = ["Yuri Miyamori"]
 version = "0.1.0"
