@@ -102,12 +102,19 @@ function connect(db::Surreal)
         db.url *= "/rpc"
     end
     headers = [
-    "Upgrade" => "websocket",
-    "Connection" => "Upgrade",
-    "Sec-WebSocket-Key" => base64encode(rand(UInt8, 16)),
-    "Sec-WebSocket-Version" => "13"
+        "Upgrade" => "websocket",
+        "Connection" => "Upgrade",
+        "Sec-WebSocket-Key" => base64encode(rand(UInt8, 16)),
+        "Sec-WebSocket-Version" => "13"
     ]
-    socket, response = openraw("GET", db.url, headers)
+    #wt = Condition()
+    #@async (sleep(3.0); notify(wt))
+    #t = @async (openraw("GET", db.url, headers))
+    #socket, _ = wait(t)
+    #if socket === nothing
+    #    error("Connection timed out")
+    #end
+    socket, _ = openraw("GET", db.url, headers)
     db.ws = WebSocket(socket)
     db.client_state = CONNECTED
     nothing
@@ -126,11 +133,12 @@ Signs this connection in to a specific authentication scope.
 julia> signin(db, user="root", pass="root")
 ```
 """
-function signin(db::Surreal; user::String, pass::String)::Union{String, Nothing}
+function signin(db::Surreal; user::String, pass::String)::Nothing
     params = Dict("id" => generate_uuid(),"method"=>"signin",
                 "params" => [Dict("user"=> user, "pass"=> pass),]
             )
     db.token = send_receive(db, params)
+    nothing
 end
 
 """
@@ -144,11 +152,12 @@ end
 julia> signup(db, user="bob", pass="123456")
 ```
 """
-function signup(db::Surreal; user::String, pass::String)::Union{String, Nothing}
+function signup(db::Surreal; user::String, pass::String)::Nothing
     params = Dict("id" => generate_uuid(),"method"=>"signup",
                 "params" => [Dict("user"=> user, "pass"=> pass),]
             )
     db.token = send_receive(db, params)
+    nothing
 end
 
 """
@@ -161,11 +170,12 @@ Authenticates the current connection with a JWT token.
 julia> authenticate(db, token="JWT token here")
 ```
 """
-function authenticate(db::Surreal; token::String)::Union{String, Nothing}
+function authenticate(db::Surreal; token::String)::Nothing
     params = Dict("id" => generate_uuid(),"method"=>"authenticate",
                 "params" => (token,)
             )
     db.token = send_receive(db, params)
+    nothing
 end
 
 """
@@ -180,7 +190,7 @@ Switch to a specific namespace and database.
 julia> use(db, namespace='test', database='test')
 ```
 """
-function use(db::Surreal; namespace::String, database::String)
+function use(db::Surreal; namespace::String, database::String)::Nothing
     params = Dict("id" => generate_uuid(),"method"=>"use",
                 "params" => (namespace, database)
             )
@@ -409,12 +419,13 @@ end
 
 Closes the persistent connection to the database.
 """
-function close(db::Surreal)
+function close(db::Surreal)::Nothing
     if db.client_state == CONNECTED
         close(db.ws)
     end
 
     db.client_state = DISCONNECTED
+    nothing
 end
 
 """
@@ -448,20 +459,20 @@ function send_receive(db::Surreal, params::Dict)::Union{Nothing, Dict{String, An
     end
 
     # Send & Recieve
-    send(db.ws, json(params))
-    response = parse(receive(db.ws))
-    println(response)
+    t = @async begin
+        send(db.ws, json(params))
+        parse(receive(db.ws))
+    end
+    response = fetch(t)
+    # println(response)
 
     # Check Error
-    if haskey(response, "error")
-        throw(ErrorException(response["error"]["message"]))
-    end
+    haskey(response, "error") && throw(ErrorException(response["error"]["message"]))
 
+    # res
     result = response["result"] 
     isnothing(result) && return nothing
-
-    result = convert(Vector{Dict{String, Any}}, result)
     length(result) == 1 && return result[1]
-    return result #Nothing or Vector{Any}
+    return convert(Vector{Dict{String, Any}}, result)
 end
 end
