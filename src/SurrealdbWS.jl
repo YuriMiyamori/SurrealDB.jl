@@ -17,11 +17,13 @@ ping,
 info
 
 import Base64: base64encode
-import HTTP.openraw
 import HTTP.Sockets: send
 import HTTP.WebSockets: WebSocket, close, receive
+import HTTP.openraw
 import JSON: json, parse
 import UUIDs: uuid4
+
+
 
 
 @enum ConnectionState CONNECTING=0 CONNECTED=1 DISCONNECTED=2
@@ -107,13 +109,6 @@ function connect(db::Surreal)
         "Sec-WebSocket-Key" => base64encode(rand(UInt8, 16)),
         "Sec-WebSocket-Version" => "13"
     ]
-    #wt = Condition()
-    #@async (sleep(3.0); notify(wt))
-    #t = @async (openraw("GET", db.url, headers))
-    #socket, _ = wait(t)
-    #if socket === nothing
-    #    error("Connection timed out")
-    #end
     socket, _ = openraw("GET", db.url, headers)
     db.ws = WebSocket(socket)
     db.client_state = CONNECTED
@@ -415,7 +410,7 @@ function ping(db::Surreal)
     return send_receive(db, params)
 end
 """
-    close!(db::Surreal)
+    close(db::Surreal)
 
 Closes the persistent connection to the database.
 """
@@ -459,14 +454,15 @@ function send_receive(db::Surreal, params::Dict)::Union{Nothing, Dict{String, An
     end
 
     # Send & Recieve
-    t = @async begin
+    t = Threads.@spawn begin
         send(db.ws, json(params))
-        parse(receive(db.ws))
+        receive(db.ws)
     end
-    response = fetch(t)
-    # println(response)
 
-    # Check Error
+    # json to dict
+    response = fetch(t) |> parse
+
+    # Check response has Error
     haskey(response, "error") && throw(ErrorException(response["error"]["message"]))
 
     # res
