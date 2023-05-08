@@ -28,6 +28,11 @@ import UUIDs: uuid4
 
 @enum ConnectionState CONNECTING=0 CONNECTED=1 DISCONNECTED=2
 
+struct TimeoutError <: Exception
+    msg::String
+end
+Base.showerror(io::IO, e::TimeoutError) = print(io, e.msg)
+
 """
     Surreal(url::Union{Nothing, String}, token::Union{Nothing, String}, client_state::ConnectionState, ws::Union{Nothing, websocket}
 A struct represents a Surreal server.
@@ -94,7 +99,7 @@ julia> connect(db,"http://cloud.surrealdb.com/rpc")
 julia> signin(db, user="root", pass="root")
 ```
 """
-function connect(db::Surreal)
+function connect(db::Surreal; timeout::Real=10.0)
     if occursin("https", db.url)
         db.url = replace(db.url, "https://" => "wss://")
     elseif occursin("http", db.url)
@@ -109,12 +114,16 @@ function connect(db::Surreal)
         "Sec-WebSocket-Key" => base64encode(rand(UInt8, 16)),
         "Sec-WebSocket-Version" => "13"
     ]
-    socket, _ = openraw("GET", db.url, headers)
+    tsk = Threads.@spawn openraw("GET", db.url, headers)
+    res = timedwait(()->istaskdone(tsk),timeout, pollint=0.05) #:ok or :timeout
+    if res == :timed_out 
+        throw(TimeoutError("Connection timed out. Check your url($(db.url)). Or set timeout($(timeout) sec) to larger value and try again."))
+    end
+    socket, _ = fetch(tsk)
     db.ws = WebSocket(socket)
     db.client_state = CONNECTED
     nothing
 end
-
 
 
 """
