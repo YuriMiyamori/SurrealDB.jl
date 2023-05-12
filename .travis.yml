@@ -21,7 +21,7 @@ jobs:
   allow_failures:
     - julia: nightly
 before_install:
-- docker run --pull=always --rm -p 8000:8000 surrealdb/surrealdb:latest start --user root --pass root memory > /dev/null 2>&1 &
+- docker run --pull=always --rm -p 8001:8000 surrealdb/surrealdb:latest start --user root --pass root memory > /dev/null 2>&1 &
 # - docker run --pull=always --rm -p 8010:8000 surrealdb/surrealdb:latest start --user test_user --pass 123456 memory > /dev/null 2>&1 &
 after_success:
   - |
