@@ -1,6 +1,8 @@
+# include("../src/SurrealdbWS.jl")
 using SurrealdbWS
+import RDatasets: dataset
 using Test
 
-PORT = 8001
+const URL = "ws://localhost:8000/rpc"
 include("notebook.jl")
 include("script.jl")

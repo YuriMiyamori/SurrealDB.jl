@@ -85,6 +85,8 @@ function Surreal(f::Function, url::String, token::Union{Nothing, String}=nothing
         close(db)
     end
 end
+
+
 """
     connect(db::Surreal, url::Union{Nothing, String}=nothing)
 connect to a local or remote database endpoint
@@ -115,7 +117,7 @@ function connect(db::Surreal; timeout::Real=10.0)
         "Sec-WebSocket-Version" => "13"
     ]
     tsk = Threads.@spawn openraw("GET", db.url, headers)
-    res = timedwait(()->istaskdone(tsk),timeout, pollint=0.05) #:ok or :timeout
+    res = timedwait(()->istaskdone(tsk),timeout, pollint=0.01) #:ok or :timeout
     if res == :timed_out 
         throw(TimeoutError("Connection timed out. Check your url($(db.url)). Or set timeout($(timeout) sec) to larger value and try again."))
     end
@@ -124,7 +126,6 @@ function connect(db::Surreal; timeout::Real=10.0)
     db.client_state = CONNECTED
     nothing
 end
-
 
 """
     signin(db::Surreal; user::String, pass::String)::Union{String, Nothing}
@@ -222,7 +223,7 @@ julia> record = create(db,"person:tobie", Dict(
         ),
     )
 """
-function create(db::Surreal; thing::String, data::Union{Dict, Nothing}=nothing)
+function create(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
     params = Dict("id" => generate_uuid(),"method"=>"create",
                 "params" => (thing, data)
             )
@@ -279,7 +280,7 @@ julia> record = update(db, "person=>tobie", Dict(
     ))
 ```
 """
-function update(db::Surreal; thing::String, data::Union{Dict, Nothing}=nothing)
+function update(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
     params = Dict("id" => generate_uuid(),"method"=>"create",
                 "params" => (thing, data)
             )
@@ -305,7 +306,7 @@ julia> # Get all of the results from the second query
 julia> result[1]["result"]
 ```
 """
-function query(db::Surreal; sql::String, vars::Union{Dict, Nothing}=nothing)
+function query(db::Surreal; sql::String, vars::Union{AbstractDict, Nothing}=nothing)
     params = Dict("id" => generate_uuid(),"method"=>"query",
                 "params" => (sql, vars)
             )
@@ -336,7 +337,7 @@ person = await db.merge("person:tobie", {
 },
 })
 """
-function merge(db::Surreal; thing::String, data::Union{Dict, Nothing}=nothing)
+function merge(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
     params = Dict("id" => generate_uuid(),"method"=>"change",
                 "params" => (thing, data)
             )
@@ -367,7 +368,7 @@ julia> person = patch(db, "person:tobie", [
                 ])
 ```
 """
-function patch(db::Surreal; thing::String, data::Union{Dict, Nothing}=nothing)
+function patch(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
     params = Dict("id" => generate_uuid(),"method"=>"modify",
                 "params" => (thing, data)
             )
@@ -456,28 +457,29 @@ The response from the Surreal server.
 Exception: If the client is not connected to the Surreal server.
 Exception: If the response contains an error.
 """
-function send_receive(db::Surreal, params::Dict)::Union{Nothing, Dict{String, Any}, Vector{Dict{String, Any}}}
+function send_receive(db::Surreal, params::AbstractDict)::Union{Nothing, AbstractDict{String, Any}, Vector{AbstractDict{String, Any}}}
     # Check Connection State
     if db.client_state != CONNECTED
         throw(ErrorException("Not connected to Surreal server."))
     end
 
     # Send & Recieve
-    t = Threads.@spawn begin
-        send(db.ws, json(params))
-        receive(db.ws)
-    end
-
-    # json to dict
-    response = fetch(t) |> parse
+    send(db.ws, json(params))
+    response = parse(receive(db.ws), dicttype=Dict)
 
     # Check response has Error
     haskey(response, "error") && throw(ErrorException(response["error"]["message"]))
+    params["id"] != response["id"] && throw(ErrorException("Response ID does not match request ID."))
 
     # res
-    result = response["result"] 
-    isnothing(result) && return nothing
-    length(result) == 1 && return result[1]
-    return convert(Vector{Dict{String, Any}}, result)
+    res = response["result"] 
+    # res is nothing => nothing
+    isnothing(res) && return nothing
+    # if res is a vector of length 1 => return first element
+    (typeof(res) <: AbstractVector && length(res) == 1) && return res[1]
+    # if res type is a dict => return dict
+    typeof(res) <: AbstractDict && return res
+    # if res type is a vector => convert to vector of dicts
+    return convert(Vector{AbstractDict{String, Any}}, res)
 end
 end

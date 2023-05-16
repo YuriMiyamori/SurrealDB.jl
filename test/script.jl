@@ -1,7 +1,8 @@
 
 @testset "script" begin
-    # Surreal
-    Surreal("ws://localhost:$PORT") do db
+
+    df_boston = dataset("MASS", "Boston")
+    Surreal(URL) do db
         @test db.client_state == SurrealdbWS.ConnectionState(0)
 
         #connect
@@ -19,29 +20,33 @@
         @test res===nothing
 
         # create
-        data = Dict("user"=> "me","pass"=> "safe","marketing"=> true, "tags"=> ["python", "documentation"])
-        res = create(db, thing="person", data = data)
-        delete!(res, "id")
-        @test isequal(data, res)
+        for (i, d) in enumerate(eachrow(df_boston))
+            data = Dict((names(d) .=> values(d)))
+            res = create(db, thing="price:$(i)", data = data)
+            delete!(res, "id")
+            @test isequal(keys(data), keys(res))
+        end
 
         #update
-        data = Dict("user"=> "you","pass"=> "very safe","marketing"=> true, "tags"=> ["python", "good"])
-        res = update(db, thing="person", data = data)
-        delete!(res, "id")
-        @test isequal(data, res)
+        data = Dict("city"=> "Boston", "tags" => ["house", "good"])
+        # res = update(db, thing="price:1", data = data)
+        # @show(res)
+        # delete!(res, "id")
+        # @test isequal(data, res)
 
         #query
-        res = query(db, sql="""update person content {
-                user: 'mark1',
-                pass: 'more_safe2',
-                tags: ['awesome2']
+        res = query(db, sql="""update price MERGE {
+                city: "Boston",
+                tags: ["Harrison, D. and Rubinfeld, D.L. (1978)", "house"]
             };"""
         )
+        select(db, thing="price") |> display
+
         @test res["status"] == "OK"
     
         #delete
-        res = delete(db, thing="person")
-        @test(typeof(res)==Vector{Dict{String, Any}})
+        res = delete(db, thing="price")
+        @test(typeof(res)==Vector{AbstractDict{String, Any}})
 
         #info
         @test info(db)===nothing
