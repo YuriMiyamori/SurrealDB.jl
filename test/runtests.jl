@@ -3,6 +3,6 @@ using SurrealdbWS
 import RDatasets: dataset
 using Test
 
-const URL = "ws://localhost:8000/rpc"
+const URL = "ws://localhost:8001/rpc"
 include("notebook.jl")
 include("script.jl")
