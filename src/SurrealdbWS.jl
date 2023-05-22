@@ -509,7 +509,7 @@ function send_receive(db::Surreal, params::AbstractDict)::Union{Nothing, Abstrac
 
     # Check response has Error
     haskey(response, "error") && throw(ErrorException(response["error"]["message"]))
-    params["id"] != response["id"] && throw(ErrorException("Response ID does not match request ID."))
+    params["id"] != response["id"] && throw(ErrorException("Response ID does not match request ID. sent id is $(params["id"]) but response id is $(response["id"]))"))
 
     return  response["result"] |> convert_response
 end

@@ -20,7 +20,7 @@ using Base.Threads
 
         # create
         df_boston = dataset("MASS", "Boston")
-        set_format(db, :cbor)
+        # set_format(db, :cbor)
         for (i, d) in enumerate(eachrow(df_boston))
             data = Dict((names(d) .=> values(d)))
             res = create(db, thing="price:$(i)", data = data)
