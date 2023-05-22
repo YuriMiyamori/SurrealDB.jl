@@ -5,7 +5,7 @@ using Base.Threads
         @test db.client_state == SurrealdbWS.ConnectionState(0)
 
         #connect
-        connect(db)
+        connect(db, timeout=30)
         @test db.client_state == SurrealdbWS.ConnectionState(1)
 
         # signin
