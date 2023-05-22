@@ -14,6 +14,7 @@ patch,
 delete,
 close,
 ping,
+set_format,
 info
 
 import Base64: base64encode
@@ -22,8 +23,9 @@ import HTTP.WebSockets: WebSocket, close, receive
 import HTTP.openraw
 import JSON: json, parse
 import UUIDs: uuid4
+import MsgPack: pack, unpack
 
-
+using CBOR
 
 
 @enum ConnectionState CONNECTING=0 CONNECTED=1 DISCONNECTED=2
@@ -54,9 +56,18 @@ mutable struct Surreal
     token::Union{Nothing, String}
     client_state::ConnectionState
     ws::Union{Nothing, WebSocket}
+    format::Symbol
 end
 
-Surreal(url::String, token::Union{Nothing, String}=nothing) = Surreal(url, token, CONNECTING, nothing)
+function check_format(format::Symbol)::Nothing
+    if format ∉(:json, :msgpack, :cbor)
+        throw(ArgumentError("format must be :json or :msgpack or :cbor"))
+    end
+end
+
+function Surreal(url::String; token::Union{Nothing, String}=nothing)::Surreal
+    return Surreal(url, token, CONNECTING, nothing, :json)
+end
 
 """
     Surreal(f::Function, url::Union{Nothing, String}=nothing, token::Union{Nothing, String}=nothing)
@@ -77,8 +88,8 @@ julia> Surreal("ws://db:8000/rpc") do db
         end
 ```
 """
-function Surreal(f::Function, url::String, token::Union{Nothing, String}=nothing)
-    db = Surreal(url, token)
+function Surreal(f::Function, url::String; token::Union{Nothing, String}=nothing)
+    db = Surreal(url, token=token)
     try
         f(db)
     finally
@@ -397,6 +408,22 @@ function delete(db::Surreal; thing::String)
 end
 
 """
+    set_format(db::Surreal, format::String)
+
+set format for transmission
+# Arguments
+`format`: The format to use for transmission. :json or :cbor
+"""
+function set_format(db::Surreal, format::Symbol)::Nothing
+    check_format(format)
+    params = Dict("id" => generate_uuid(),"method"=>"format",
+                "params" => (format,)
+            )
+    display(send_receive(db, params))
+    db.format = format
+    nothing
+end
+"""
     info(db::Surreal)
 
 Retreive info about the current Surreal instance.
@@ -457,29 +484,42 @@ The response from the Surreal server.
 Exception: If the client is not connected to the Surreal server.
 Exception: If the response contains an error.
 """
-function send_receive(db::Surreal, params::AbstractDict)::Union{Nothing, AbstractDict{String, Any}, Vector{AbstractDict{String, Any}}}
+function send_receive(db::Surreal, params::AbstractDict)::Union{Nothing, AbstractDict, Vector{AbstractDict}}
     # Check Connection State
     if db.client_state != CONNECTED
         throw(ErrorException("Not connected to Surreal server."))
     end
 
     # Send & Recieve
+    check_format(db.format)
+    # typed_params = type_annotate(params)
+
     send(db.ws, json(params))
-    response = parse(receive(db.ws), dicttype=Dict)
+    res= receive(db.ws)
+
+    response = begin
+        if db.format == :json
+            parse(res)
+        elseif db.format == :msgpack
+            unpack(res)
+        elseif db.format == :cbor
+            decode(res)
+        end
+    end
 
     # Check response has Error
     haskey(response, "error") && throw(ErrorException(response["error"]["message"]))
-    params["id"] != response["id"] && throw(ErrorException("Response ID does not match request ID."))
+    params["id"] != response["id"] && throw(ErrorException("Response ID does not match request ID. sent id is $(params["id"]) but response id is $(response["id"]))"))
 
-    # res
-    res = response["result"] 
-    # res is nothing => nothing
-    isnothing(res) && return nothing
-    # if res is a vector of length 1 => return first element
-    (typeof(res) <: AbstractVector && length(res) == 1) && return res[1]
-    # if res type is a dict => return dict
-    typeof(res) <: AbstractDict && return res
-    # if res type is a vector => convert to vector of dicts
-    return convert(Vector{AbstractDict{String, Any}}, res)
+    return  response["result"] |> convert_response
 end
+
+convert_response(res::Nothing) = res
+convert_response(res::AbstractDict) = res
+function convert_response(res::Vector)::Union{Vector{AbstractDict}, AbstractDict}
+    length(res) == 1 && return res[1]
+    return convert(Vector{AbstractDict}, res)
+end
+
+
 end

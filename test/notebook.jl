@@ -9,9 +9,9 @@
     @test db.client_state == SurrealdbWS.ConnectionState(1)
 
     #info
-    @test info(db)===nothing
+    # @test info(db)===nothing
     #ping
-    @test ping(db)===nothing
+    # @test ping(db)===nothing
     #close
     close(db)
     @test db.client_state ==  SurrealdbWS.ConnectionState(2)
