@@ -14,6 +14,7 @@ patch,
 delete,
 close,
 ping,
+authenticate,
 set_format,
 info
 
@@ -168,16 +169,16 @@ end
 julia> signup(db, user="bob", pass="123456")
 ```
 """
-function signup(db::Surreal; user::String, pass::String)::Nothing
+function signup(db::Surreal; vars::Dict)::Nothing
     params = Dict("id" => generate_uuid(),"method"=>"signup",
-                "params" => [Dict("user"=> user, "pass"=> pass),]
+                "params" => (vars,)
             )
     db.token = send_receive(db, params)
     nothing
 end
 
 """
-    authenticate(db::Surreal; token::String)::Union{String, Nothing}
+    authenticate(db::Surreal; token::Union{String, Nothing}=nothing)::Nothing
 Authenticates the current connection with a JWT token.
 # Arguments
 - `token`: The token to use for the connection.
@@ -186,12 +187,14 @@ Authenticates the current connection with a JWT token.
 julia> authenticate(db, token="JWT token here")
 ```
 """
-function authenticate(db::Surreal; token::String)::Nothing
+function authenticate(db::Surreal; token::Union{String, Nothing}=nothing)::Nothing
+    if !isnothing(token)
+        db.token = token
+    end
     params = Dict("id" => generate_uuid(),"method"=>"authenticate",
-                "params" => (token,)
+                "params" => (db.token,)
             )
-    db.token = send_receive(db, params)
-    nothing
+    send_receive(db, params)
 end
 
 """
@@ -484,7 +487,7 @@ The response from the Surreal server.
 Exception: If the client is not connected to the Surreal server.
 Exception: If the response contains an error.
 """
-function send_receive(db::Surreal, params::AbstractDict)::Union{Nothing, AbstractDict, Vector{AbstractDict}}
+function send_receive(db::Surreal, params::AbstractDict)::Union{Nothing, String, AbstractDict, Vector{AbstractDict}}
     # Check Connection State
     if db.client_state != CONNECTED
         throw(ErrorException("Not connected to Surreal server."))
@@ -514,8 +517,7 @@ function send_receive(db::Surreal, params::AbstractDict)::Union{Nothing, Abstrac
     return  response["result"] |> convert_response
 end
 
-convert_response(res::Nothing) = res
-convert_response(res::AbstractDict) = res
+convert_response(res) = res
 function convert_response(res::Vector)::Union{Vector{AbstractDict}, AbstractDict}
     length(res) == 1 && return res[1]
     return convert(Vector{AbstractDict}, res)

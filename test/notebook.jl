@@ -8,6 +8,11 @@
     connect(db)
     @test db.client_state == SurrealdbWS.ConnectionState(1)
 
+    # signin
+    res = signin(db, user="root", pass="root")
+    @test res===nothing
+    @show("sign in ", res)
+
     #info
     # @test info(db)===nothing
     #ping
