@@ -422,7 +422,7 @@ function set_format(db::Surreal, format::Symbol)::Nothing
     params = Dict("id" => generate_uuid(),"method"=>"format",
                 "params" => (format,)
             )
-    display(send_receive(db, params))
+    send_receive(db, params)
     db.format = format
     nothing
 end
