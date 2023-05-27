@@ -30,9 +30,8 @@ df_boston = dataset("MASS", "Boston")
     )
 
     # set format 
-    set_format(db, :josn)
+    set_format(db, :json)
     set_format(db, :cbor)
-    set_format(db, :msgpack)
 
     #close
     close(db)
