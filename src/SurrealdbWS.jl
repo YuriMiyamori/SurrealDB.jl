@@ -285,7 +285,7 @@ update `thing` content `data`
 julia> # Update all records in a table
 julia> person = update(db, "person")
 julia> # Update a record with a specific ID
-julia> record = update(db, "person=>tobie", Dict(
+julia> record = update(db, "person:tobie", Dict(
     "name"=> "Tobie",
     "settings"=> Dict(
     "active"=> true,
@@ -295,7 +295,7 @@ julia> record = update(db, "person=>tobie", Dict(
 ```
 """
 function update(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
-    params = Dict("id" => generate_uuid(),"method"=>"create",
+    params = Dict("id" => generate_uuid(),"method"=>"update",
                 "params" => (thing, data)
             )
     return send_receive(db, params)

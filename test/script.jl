@@ -65,16 +65,17 @@ end
             delete!(res, "id")
             @test isequal(keys(data), keys(res))
         end
-        res = delete(db, thing="price")
+
+        res = update(db, thing="price:1", data=Dict("price"=>1000.0))
+
 
         #query
-        res = query(db, sql="""update price MERGE {
-                city: "Boston",
-                tags: ["Harrison, D. and Rubinfeld, D.L. (1978)", "house"]
-            };"""
+        res = SurrealdbWS.merge(db, thing="price", 
+            data=Dict(
+                "city"=> "Boston",
+                "tags"=> ["Harrison, D. and Rubinfeld, D.L. (1978)", "house"]
+            )
         )
-        @test res["status"] == "OK"
-
         res = select(db, thing="price:506")
 
         #delete
@@ -85,4 +86,9 @@ end
         #ping
         @test ping(db)===nothing
     end
+end
+
+@testset "errors" begin
+   db = Surreal("ws://localhost:8099")
+   @test_throws SurrealdbWS.TimeoutError connect(db, timeout=1)
 end
