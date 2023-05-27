@@ -28,6 +28,12 @@ df_boston = dataset("MASS", "Boston")
         SIGNIN ( SELECT * FROM user WHERE user = \$user AND crypto::argon2::compare(pass, \$pass) )
       """
     )
+
+    # set format 
+    set_format(db, :josn)
+    set_format(db, :cbor)
+    set_format(db, :msgpack)
+
     #close
     close(db)
     @test db.client_state ==  SurrealdbWS.ConnectionState(2)
