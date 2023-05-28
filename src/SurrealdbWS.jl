@@ -83,9 +83,6 @@ julia> Surreal("ws://db:8000/rpc") do db
             create(db, thing="person",
                     data = Dict("user"=> "me","pass"=> "safe","marketing"=> true,
                                 "tags"=> ["python", "documentation"]))
-            update(db, thing="person",
-                    data = Dict("user"=> "you","pass"=> "very safe","marketing"=> true,
-                                "tags"=> ["python", "good"]))
         end
 ```
 """

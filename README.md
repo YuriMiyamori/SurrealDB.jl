@@ -1,7 +1,6 @@
 # SurrealdbWS
 [![Build Status](https://travis-ci.com/YuriMiyamori/SurrealdbWS.jl.svg?branch=main)](https://travis-ci.com/YuriMiyamori/SurrealdbWS.jl)
 [![Coverage](https://codecov.io/gh/YuriMiyamori/SurrealdbWS.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/YuriMiyamori/SurrealdbWS.jl)
-[![Coverage](https://coveralls.io/repos/github/YuriMiyamori/SurrealdbWS.jl/badge.svg?branch=main)](https://coveralls.io/github/YuriMiyamori/SurrealdbWS.jl?branch=main)
 
 
 The [SurrealDB](https://surrealdb.com) driver for Julia via WebSocket(unofficial)
@@ -17,38 +16,42 @@ Pkg.add("SurrealdbWS")
 
 ## Usage
 
-### notebooks
+### Do-Block Syntax
 ```julia
-db = Surreal("ws://127.0.0.1:8000/rpc")
+using SurrealdbWS
+Surreal("ws://localhost:8000/rpc") do db
+    connect(db)
+    signin(db, user="root", pass="root")
+    use(db, namespace="test", database="test")
+    create(db, thing="person",
+            data = Dict("user"=> "Myra Eggleston",
+                        "email"=> "eggleston@domain.com",
+                        "marketing"=> true,
+                        "tags"=> ["Julialang", "documentation", "CFD"]
+                        )
+                    )
+    create(db, thing="person",
+            data = Dict("user"=> "Domenico Risi",
+                        "email"=> "domenico.risi@domain.com",
+                        "marketing"=> false,
+                        "tags"=> ["julialang", "bioinformatics"],
+                        )
+        )
+    change(db, thing="person",data = Dict("computer science"=> true,))
+    selcet(db, thing="person")
+end
+```
+
+### Close manulally for e.g. notebooks
+```julia
+using SurrealdbWS
+db = Surreal("ws://localhost:8000/rpc")
 connect(db)
 signin(db,user="root", pass="root")
 use(db, namespace="test", database="test")
 create(db, thing="person",
         data = Dict("user"=> "me","pass"=> "safe","marketing"=> true,
             "tags"=> ["python", "documentation"]))
-update(db, thing="person",
-        data = Dict("user"=> "you","pass"=> "very safe","marketing"=> true,
-           "tags"=> ["python", "good"]))
-query(db, sql="""update person content {
-            user: 'mark1',
-            pass: 'more_safe2',
-            tags: ['awesome2']
-        };"""
-)
 delete(db, thing="person")
 close(db)
-```
-### script
-```julia
-Surreal("ws://db:8000/rpc") do db
-    connect(db)
-    signin(db, user="root", pass="root")
-    use(db, namespace="test", database="test")
-    create(db, thing="person",
-            data = Dict("user"=> "me","pass"=> "safe","marketing"=> true,
-                        "tags"=> ["python", "documentation"]))
-    update(db, thing="person",
-            data = Dict("user"=> "you","pass"=> "very safe","marketing"=> true,
-                        "tags"=> ["python", "good"]))
-end
 ```
