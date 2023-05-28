@@ -9,7 +9,7 @@ select,
 create,
 update,
 query,
-merge,
+change,
 patch,
 delete,
 close,
@@ -328,7 +328,7 @@ function query(db::Surreal; sql::String, vars::Union{AbstractDict, Nothing}=noth
 end
 
 """
-    merge(db::Surreal; thing::String, data::Union{Dict, Nothing}=nothing)
+    change(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
 
 Modifies by deep merging all records in a table, or a specific record, in the database.
 This function merges the current document / record data with the
@@ -339,19 +339,12 @@ update `thing` merge `data`
 `thing`: The table name or the specific record ID to change.
 `data`: The document / record data to insert.
 # Examples
-Update all records in a table
-people = await db.merge("person", {
-"updated_at":  str(datetime.datetime.utcnow())
-})
-Update a record with a specific ID
-person = await db.merge("person:tobie", {
-"updated_at": str(datetime.datetime.utcnow()),
-"settings": {
-"active": True,
-},
-})
+```jldoctest
+# Update all records in a table
+res = change(db, thing="person", data=Dict("active":  true))
+```
 """
-function merge(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
+function change(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
     params = Dict("id" => generate_uuid(),"method"=>"change",
                 "params" => (thing, data)
             )

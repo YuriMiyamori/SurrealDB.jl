@@ -75,7 +75,7 @@ end
 
 
         #query
-        res = SurrealdbWS.merge(db, thing="price", 
+        res = change(db, thing="price", 
             data=Dict(
                 "city"=> "Boston",
                 "tags"=> ["Harrison, D. and Rubinfeld, D.L. (1978)", "house"]
