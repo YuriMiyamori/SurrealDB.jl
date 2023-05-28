@@ -9,11 +9,12 @@ select,
 create,
 update,
 query,
-merge,
+change,
 patch,
 delete,
 close,
 ping,
+authenticate,
 set_format,
 info
 
@@ -82,9 +83,6 @@ julia> Surreal("ws://db:8000/rpc") do db
             create(db, thing="person",
                     data = Dict("user"=> "me","pass"=> "safe","marketing"=> true,
                                 "tags"=> ["python", "documentation"]))
-            update(db, thing="person",
-                    data = Dict("user"=> "you","pass"=> "very safe","marketing"=> true,
-                                "tags"=> ["python", "good"]))
         end
 ```
 """
@@ -168,16 +166,16 @@ end
 julia> signup(db, user="bob", pass="123456")
 ```
 """
-function signup(db::Surreal; user::String, pass::String)::Nothing
+function signup(db::Surreal; vars::Dict)::Nothing
     params = Dict("id" => generate_uuid(),"method"=>"signup",
-                "params" => [Dict("user"=> user, "pass"=> pass),]
+                "params" => (vars,)
             )
     db.token = send_receive(db, params)
     nothing
 end
 
 """
-    authenticate(db::Surreal; token::String)::Union{String, Nothing}
+    authenticate(db::Surreal; token::Union{String, Nothing}=nothing)::Nothing
 Authenticates the current connection with a JWT token.
 # Arguments
 - `token`: The token to use for the connection.
@@ -186,12 +184,14 @@ Authenticates the current connection with a JWT token.
 julia> authenticate(db, token="JWT token here")
 ```
 """
-function authenticate(db::Surreal; token::String)::Nothing
+function authenticate(db::Surreal; token::Union{String, Nothing}=nothing)::Nothing
+    if !isnothing(token)
+        db.token = token
+    end
     params = Dict("id" => generate_uuid(),"method"=>"authenticate",
-                "params" => (token,)
+                "params" => (db.token,)
             )
-    db.token = send_receive(db, params)
-    nothing
+    send_receive(db, params)
 end
 
 """
@@ -282,7 +282,7 @@ update `thing` content `data`
 julia> # Update all records in a table
 julia> person = update(db, "person")
 julia> # Update a record with a specific ID
-julia> record = update(db, "person=>tobie", Dict(
+julia> record = update(db, "person:tobie", Dict(
     "name"=> "Tobie",
     "settings"=> Dict(
     "active"=> true,
@@ -292,7 +292,7 @@ julia> record = update(db, "person=>tobie", Dict(
 ```
 """
 function update(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
-    params = Dict("id" => generate_uuid(),"method"=>"create",
+    params = Dict("id" => generate_uuid(),"method"=>"update",
                 "params" => (thing, data)
             )
     return send_receive(db, params)
@@ -325,7 +325,7 @@ function query(db::Surreal; sql::String, vars::Union{AbstractDict, Nothing}=noth
 end
 
 """
-    merge(db::Surreal; thing::String, data::Union{Dict, Nothing}=nothing)
+    change(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
 
 Modifies by deep merging all records in a table, or a specific record, in the database.
 This function merges the current document / record data with the
@@ -336,19 +336,12 @@ update `thing` merge `data`
 `thing`: The table name or the specific record ID to change.
 `data`: The document / record data to insert.
 # Examples
-Update all records in a table
-people = await db.merge("person", {
-"updated_at":  str(datetime.datetime.utcnow())
-})
-Update a record with a specific ID
-person = await db.merge("person:tobie", {
-"updated_at": str(datetime.datetime.utcnow()),
-"settings": {
-"active": True,
-},
-})
+```jldoctest
+# Update all records in a table
+res = change(db, thing="person", data=Dict("active":  true))
+```
 """
-function merge(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
+function change(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
     params = Dict("id" => generate_uuid(),"method"=>"change",
                 "params" => (thing, data)
             )
@@ -419,7 +412,7 @@ function set_format(db::Surreal, format::Symbol)::Nothing
     params = Dict("id" => generate_uuid(),"method"=>"format",
                 "params" => (format,)
             )
-    display(send_receive(db, params))
+    send_receive(db, params)
     db.format = format
     nothing
 end
@@ -484,7 +477,7 @@ The response from the Surreal server.
 Exception: If the client is not connected to the Surreal server.
 Exception: If the response contains an error.
 """
-function send_receive(db::Surreal, params::AbstractDict)::Union{Nothing, AbstractDict, Vector{AbstractDict}}
+function send_receive(db::Surreal, params::AbstractDict)::Union{Nothing, String, AbstractDict, Vector{AbstractDict}}
     # Check Connection State
     if db.client_state != CONNECTED
         throw(ErrorException("Not connected to Surreal server."))
@@ -514,8 +507,7 @@ function send_receive(db::Surreal, params::AbstractDict)::Union{Nothing, Abstrac
     return  response["result"] |> convert_response
 end
 
-convert_response(res::Nothing) = res
-convert_response(res::AbstractDict) = res
+convert_response(res) = res
 function convert_response(res::Vector)::Union{Vector{AbstractDict}, AbstractDict}
     length(res) == 1 && return res[1]
     return convert(Vector{AbstractDict}, res)
