@@ -96,4 +96,12 @@ end
 @testset "errors" begin
    db = Surreal("ws://localhost:8099")
    @test_throws SurrealdbWS.TimeoutError connect(db, timeout=1)
+
+   db = Surreal("https://localhost:8099")
+   @test_throws SurrealdbWS.TimeoutError connect(db, timeout=1)
+
+   db = Surreal("http://localhost:8099")
+   @test_throws SurrealdbWS.TimeoutError connect(db, timeout=1)
+
+   @test_throws ErrorException info(db)
 end
