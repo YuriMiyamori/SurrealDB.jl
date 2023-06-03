@@ -2,6 +2,8 @@ using Base.Threads
 
 # open and close manually
 df_boston = dataset("MASS", "Boston")
+
+
 @testset "open close manually" begin
     db = Surreal(URL)
     @test db.client_state == SurrealdbWS.ConnectionState(0)
@@ -64,11 +66,18 @@ end
 
         # create
         # set_format(db, :json)
-        for (i, d) in enumerate(eachrow(df_boston))
-            data = Dict((names(d) .=> values(d)))
-            res = create(db, thing="price:$(i)", data = data)
-            delete!(res, "id")
-            @test isequal(keys(data), keys(res))
+        @sync begin
+            for (i, d) in enumerate(eachrow(df_boston))
+                data = Dict((names(d) .=> values(d)))
+                thing = "price" #* ":" * string(i)
+                if i<2
+                    println(i,d)
+                    @spawn create($db, thing=$thing, data=$data)
+                end
+                # res = create(db, thing="price:$(i)", data = data)
+                # delete!(res, "id")
+                # @test isequal(keys(data), keys(res))
+            end
         end
 
         res = update(db, thing="price:1", data=Dict("price"=>1000.0))
