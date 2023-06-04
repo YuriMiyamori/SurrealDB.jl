@@ -13,7 +13,9 @@ function signin(db::Surreal; user::String, pass::String)::Nothing
     params = Dict("user"=>user, "pass"=>pass)
     @sync begin
         tasks = [@spawn send_receive(db, method="signin", params=(params,)) for _ in 1:db.npool]
-        errormonitor.(tasks)
+        @static if VERSION ≥ v"1.7"
+            errormonitor.(tasks)
+        end
         db.token = fetch(first(tasks))
     end
     nothing
@@ -36,7 +38,9 @@ function signup(db::Surreal; vars::Dict)::Nothing
     end
     @sync begin
         task = @spawn send_receive(db, method="signup", params=(vars,))
-        errormonitor(task)
+        @static if VERSION ≥ v"1.7"
+            errormonitor(task)
+        end
         db.token = fetch(task)
     end
     nothing
@@ -58,7 +62,9 @@ function authenticate(db::Surreal; token::Union{String, Nothing}=nothing)::Nothi
     end
     @sync begin
         tasks = [@spawn send_receive(db, method="authenticate", params=(db.token,)) for i in 1:db.npool]
-        errormonitor.(tasks)
+        @static if VERSION ≥ v"1.7"
+            errormonitor.(tasks)
+        end
     end
     nothing
 end
@@ -106,7 +112,9 @@ julia> record = create(db,"person:tobie", Dict(
 """
 function create(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
     task = @spawn send_receive(db, method="create", params=(thing, data))
-    errormonitor(task)
+    @static if VERSION ≥ v"1.7"
+        errormonitor(task)
+    end
     return fetch(task)
 end
 
@@ -130,7 +138,9 @@ julia> person = select(db, "person:h5wxrf2ewk8xjxosxtyc")
 """
 function select(db::Surreal; thing::String)
     task = @spawn send_receive(db, method="select", params=(thing, ))
-    errormonitor(task)
+    @static if VERSION ≥ v"1.7"
+        errormonitor(task)
+    end
     return fetch(task)
 end
 
@@ -161,7 +171,9 @@ julia> record = update(db, "person:tobie", Dict(
 """
 function update(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
     task = @spawn send_receive(db, method="update", params=(thing, data))
-    errormonitor(task)
+    @static if VERSION ≥ v"1.7"
+        errormonitor(task)
+    end
     return fetch(task)
 end
 
@@ -186,7 +198,9 @@ julia> result[1]["result"]
 """
 function query(db::Surreal; sql::String, vars::Union{AbstractDict, Nothing}=nothing)
     task = @spawn send_receive(db, method="query", params=(sql, vars))
-    errormonitor(task)
+    @static if VERSION ≥ v"1.7"
+        errormonitor(task)
+    end
     return fetch(task)
 end
 
@@ -209,7 +223,9 @@ res = change(db, thing="person", data=Dict("active":  true))
 """
 function change(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
     task = @spawn send_receive(db, method="change", params=(thing, data))
-    errormonitor(task)
+    @static if VERSION ≥ v"1.7"
+        errormonitor(task)
+    end
     return fetch(task)
 end
 
@@ -239,7 +255,9 @@ julia> person = patch(db, "person:tobie", [
 """
 function patch(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
     task = @spawn send_receive(db, method="modify", params=(thing, data))
-    errormonitor(task)
+    @static if VERSION ≥ v"1.7"
+        errormonitor(task)
+    end
     return fetch(task)
 end
 
@@ -259,7 +277,9 @@ julia> delete(db, "person:h5wxrf2ewk8xjxosxtyc")
 """
 function delete(db::Surreal; thing::String)
     task = @spawn send_receive(db, method="delete", params=(thing, ))
-    errormonitor(task)
+    @static if VERSION ≥ v"1.7"
+        errormonitor(task)
+    end
     return fetch(task)
 end
 
@@ -273,7 +293,9 @@ set format for transmission
 function set_format(db::Surreal, format::Symbol)::Nothing
     check_format(format)
     tasks = [@spawn send_receive(db, method="format", params=(format, )) for _ in 1:db.npool]
-    errormonitor.(tasks)
+    @static if VERSION ≥ v"1.7"
+        errormonitor.(tasks)
+    end
     fetch.(tasks)
     db.format = format
     nothing
@@ -287,7 +309,9 @@ Retreive info about the current Surreal instance.
 """
 function info(db::Surreal)
     task = @spawn send_receive(db, method="info")
-    errormonitor(task)
+    @static if VERSION ≥ v"1.7"
+        errormonitor(task)
+    end
     return fetch(task)
 end
 
@@ -298,6 +322,8 @@ Ping the Surreal server.
 """
 function ping(db::Surreal)
     task = @spawn send_receive(db, method="ping")
-    errormonitor(task)
+    @static if VERSION ≥ v"1.7"
+        errormonitor(task)
+    end
     return fetch(task)
 end
