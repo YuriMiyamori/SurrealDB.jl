@@ -1,4 +1,4 @@
-using Base.Threads
+import Base.Threads: @spawn
 
 # open and close manually
 
