@@ -84,7 +84,9 @@ julia> use(db, namespace='test', database='test')
 function use(db::Surreal; namespace::String, database::String)::Nothing
     @sync begin
         tasks = [@spawn send_receive(db, method="use", params=(namespace, database)) for _ in 1:db.npool]
-        errormonitor.(tasks)
+        @static if VERSION ≥ v"1.7"
+            errormonitor.(tasks)
+        end
     end
     nothing
 end
