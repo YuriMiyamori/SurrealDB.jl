@@ -18,6 +18,7 @@ authenticate,
 set_format,
 info
 
+import Base.Threads: @spawn
 import Base64: base64encode
 import CBOR: decode, encode
 import HTTP.Sockets: send
@@ -27,7 +28,7 @@ import JSON: json, parse
 import MsgPack: pack, unpack
 import UUIDs: uuid4
 
-using Base.Threads
+
 
 include("surreal.jl")
 include("connection.jl")

@@ -38,27 +38,27 @@ using Base.Threads
     close(db)
     @test db.client_state ==  SurrealdbWS.ConnectionState(2)
 end
-# 
-# @testset "sign up" begin
-#     global token =Surreal(URL) do db
-#         connect(db, timeout=30)
-#         res = signup(db, vars=Dict("ns" =>"test", "db"=>"test",  "sc" => "allusers", "user"=>"test_user", "pass"=>"test_user_pass"))
-#         @test res === nothing
-#         db.token
-#     end
-# end
-# @show(token)
-# 
-# @testset "authenticate" begin
-#     Surreal(URL) do db
-#         connect(db, timeout=30)
-#         res = authenticate(db, token=token)
-#         @test res === nothing
-#     end
-# end
+
+@testset "sign up" begin
+    global token =Surreal(URL) do db
+        connect(db, timeout=30)
+        res = signup(db, vars=Dict("ns" =>"test", "db"=>"test",  "sc" => "allusers", "user"=>"test_user", "pass"=>"test_user_pass"))
+        @test res === nothing
+        db.token
+    end
+end
+@show(token)
+
+@testset "authenticate" begin
+    Surreal(URL) do db
+        connect(db, timeout=30)
+        res = authenticate(db, token=token)
+        @test res === nothing
+    end
+end
 
 @testset "do open statement" begin
-    Surreal(URL, npool=20) do db
+    Surreal(URL, npool=5) do db
         df_boston = dataset("MASS", "Boston")
         #connect
         @test db.client_state == SurrealdbWS.ConnectionState(0)
@@ -72,7 +72,7 @@ end
         @time begin
             @sync begin
                 for (i, d) in enumerate(eachrow(df_boston))
-                    for _ in 1:20
+                    for _ in 1:1
                         data = Dict((names(d) .=> values(d)))
                         thing = "price" #* ":" * string(i)
                         @spawn create(db, thing=thing, data=data)
