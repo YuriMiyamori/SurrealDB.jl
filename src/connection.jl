@@ -41,10 +41,8 @@ function connect(db::Surreal; timeout::Real=10.0)
         res = timedwait(()->istaskdone(task),timeout, pollint=0.01) #:ok or :timeout
         if res == :timed_out 
             throw(TimeoutError("Connection timed out. Check your url($(db.url)). Or set timeout($(timeout) sec) to larger value and try again."))
-        end
-        @static if VERSION ≥ v"1.7"
-            errormonitor(task)
-        end
+        end 
+        @static VERSION ≥ v"1.7" && errormonitor(task)
         socket, _ = fetch(task)
         put!(db.ws_ch, WebSocket(socket))
     end
