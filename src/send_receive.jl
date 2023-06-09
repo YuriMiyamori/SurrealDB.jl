@@ -1,3 +1,11 @@
+import CBOR: decode, encode
+import JSON: json, parse
+# import JSON3: write, read
+import MsgPack: pack, unpack
+import UUIDs: uuid4
+
+
+
 """
     generate_uuid()::String
 
@@ -30,7 +38,7 @@ function send_receive(db::Surreal; method::String, params::Union{Nothing, Tuple,
     # typed_params = type_annotate(params)
 
     # take available websocket from channel, if not available, wait for it
-    ws= take!(db.ws_ch)
+    ws = take!(db.ws_ch)
     # send data to server as json
     data_send = isnothing(params) ? Dict("id"=>generate_uuid(), "method"=>method) : Dict("id"=>generate_uuid(), "method"=>method, "params"=>params)
     send(ws, json(data_send))

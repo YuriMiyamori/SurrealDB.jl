@@ -20,15 +20,9 @@ info
 
 import Base.Threads: @spawn
 import Base64: base64encode
-import CBOR: decode, encode
 import HTTP.Sockets: send
 import HTTP.WebSockets: WebSocket, close, receive
 import HTTP.openraw
-import JSON: json, parse
-import MsgPack: pack, unpack
-import UUIDs: uuid4
-
-
 
 include("surreal.jl")
 include("connection.jl")
