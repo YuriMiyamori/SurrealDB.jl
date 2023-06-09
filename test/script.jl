@@ -109,7 +109,7 @@ Surreal(URL, npool=1) do db
     end
 
     @testset "ping" begin
-        res = info(db)
+        res = ping(db)
         @test res === nothing
     end
 end

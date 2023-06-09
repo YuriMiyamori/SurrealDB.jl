@@ -1,7 +1,7 @@
 name = "SurrealdbWS"
 uuid = "7b3dffa2-a94d-4703-aaf5-57911c725dc8"
 authors = ["Yuri Miyamori"]
-version = "0.1.1"
+version = "0.2.0"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
