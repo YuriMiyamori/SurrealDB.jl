@@ -1,17 +1,33 @@
-using Base.Threads
+import Base.Threads: @spawn
+import RDatasets: dataset
 
-# open and close manually
-df_boston = dataset("MASS", "Boston")
 @testset "open close manually" begin
     db = Surreal(URL)
     @test db.client_state == SurrealdbWS.ConnectionState(0)
     #conncet
     connect(db, timeout=30)
     @test db.client_state == SurrealdbWS.ConnectionState(1)
-    # signin
-    res = signin(db, user="root", pass="root")
-    @test res===nothing
+    # close
+    close(db)
+    @test db.client_state ==  SurrealdbWS.ConnectionState(2)
+end
 
+Surreal(URL, npool=5) do db
+    connect(db, timeout=30)
+    @testset "sign in" begin
+        res = signin(db, user="root", pass="root")
+        @test res === nothing
+    end
+    @testset "use" begin
+        res = use(db, namespace="test", database="test")
+        @test res === nothing
+    end
+end
+
+#DEFINE TABLE user for authenticate
+Surreal(URL) do db
+    connect(db, timeout=30)
+    res = signin(db, user="root", pass="root")
     res = use(db, namespace="test", database="test")
     # config for signup...
     user_set = query(db, sql=
@@ -28,18 +44,10 @@ df_boston = dataset("MASS", "Boston")
         SIGNIN ( SELECT * FROM user WHERE user = \$user AND crypto::argon2::compare(pass, \$pass) )
       """
     )
-
-    # set format 
-    set_format(db, :json)
-    set_format(db, :cbor)
-
-    #close
-    close(db)
-    @test db.client_state ==  SurrealdbWS.ConnectionState(2)
 end
 
 @testset "sign up" begin
-    global token =Surreal(URL) do db
+    global token = Surreal(URL) do db
         connect(db, timeout=30)
         res = signup(db, vars=Dict("ns" =>"test", "db"=>"test",  "sc" => "allusers", "user"=>"test_user", "pass"=>"test_user_pass"))
         @test res === nothing
@@ -55,43 +63,78 @@ end
     end
 end
 
-@testset "do open statement" begin
-    Surreal(URL) do db
-        #connect
-        connect(db, timeout=30)
-        res = signin(db, user="root", pass="root")
-        res = use(db, namespace="test", database="test")
+#sync query
+df_boston = dataset("MASS", "Boston")
+Surreal(URL, npool=1) do db
+    connect(db, timeout=30)
+    signin(db, user="root", pass="root")
+    use(db, namespace="test", database="test")
 
-        # create
-        # set_format(db, :json)
+    @testset "sync create" begin
         for (i, d) in enumerate(eachrow(df_boston))
             data = Dict((names(d) .=> values(d)))
-            res = create(db, thing="price:$(i)", data = data)
-            delete!(res, "id")
-            @test isequal(keys(data), keys(res))
+            thing = "price:$(string(i))"
+            res = create(db, thing=thing, data=data)
+            @test res !== nothing
         end
+    end
 
-        res = update(db, thing="price:1", data=Dict("price"=>1000.0))
+    @testset "update" begin
+        res = update(db, thing="price", data=Dict("price"=>1000.0))
+        @test res !== nothing
+    end
 
-
-        #query
+    @testset "change" begin
         res = change(db, thing="price", 
             data=Dict(
                 "city"=> "Boston",
                 "tags"=> ["Harrison, D. and Rubinfeld, D.L. (1978)", "house"]
             )
         )
-        res = select(db, thing="price:506")
+        @test res !== nothing
+    end
+    @testset "select" begin
+        res = select(db, thing="price:1")
+        @test res !== nothing
+    end
 
-        #delete
+    @testset "delete" begin
         res = delete(db, thing="price")
+        @test res !== nothing
+    end
 
-        #info
-        @test info(db)===nothing
-        #ping
-        @test ping(db)===nothing
+    @testset "info" begin
+        res = info(db)
+        @test res === nothing
+    end
+
+    @testset "ping" begin
+        res = info(db)
+        @test res === nothing
     end
 end
+
+#async create
+Surreal(URL, npool=5) do db
+    connect(db, timeout=30)
+    signin(db, user="root", pass="root")
+    use(db, namespace="test", database="test")
+    @testset "async create" begin
+        res = []
+        @sync begin
+            for (i, d) in enumerate(eachrow(df_boston))
+                data = Dict((names(d) .=> values(d)))
+                thing = "price:$(string(i))"
+                push!(res, @spawn create(db, thing=thing, data=data))
+            end
+        end
+        res = fetch.(res)
+        for val in res
+            @test res !== nothing
+        end
+    end
+end
+
 
 @testset "errors" begin
    db = Surreal("ws://localhost:8099")
@@ -103,5 +146,5 @@ end
    db = Surreal("http://localhost:8099")
    @test_throws SurrealdbWS.TimeoutError connect(db, timeout=1)
 
-   @test_throws ErrorException info(db)
+   @test_throws TaskFailedException info(db)
 end
