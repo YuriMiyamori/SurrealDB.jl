@@ -115,8 +115,8 @@ Surreal(URL, npool=1) do db
 end
 
 #async create
-Surreal(URL, npool=10) do db
-    connect(db, timeout=90)
+Surreal(URL, npool=5) do db
+    connect(db, timeout=30)
     signin(db, user="root", pass="root")
     use(db, namespace="test", database="test")
     @testset "async create" begin
