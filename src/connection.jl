@@ -36,16 +36,21 @@ julia> signin(db, user="root", pass="root")
 function connect(db::Surreal; timeout::Real=10.0)
     db.url = correct_url(db.url)
     db.ws_ch = Channel{WebSocket}(db.npool)
-    for _ in 1:db.npool
-        task = @spawn openraw("GET", db.url, generate_header())
-        res = timedwait(()->istaskdone(task),timeout, pollint=0.01) #:ok or :timeout
-        if res == :timed_out 
-            throw(TimeoutError("Connection timed out. Check your url($(db.url)). Or set timeout($(timeout) sec) to larger value and try again."))
-        end 
-        @static VERSION ≥ v"1.7" && errormonitor(task)
-        socket, _ = fetch(task)
-        put!(db.ws_ch, WebSocket(socket))
+    @sync begin
+        for _ in 1:db.npool
+            @spawn begin
+                task = @spawn openraw("GET", db.url, generate_header())
+                res = timedwait(()->istaskdone(task),timeout, pollint=0.01) #:ok or :timeout
+                if res == :timed_out 
+                    throw(TimeoutError("Connection timed out. Check your url($(db.url)). Or set timeout($(timeout) sec) to larger value and try again."))
+                end 
+                @static VERSION ≥ v"1.7" && errormonitor(task)
+                socket, _ = fetch(task)
+                put!(db.ws_ch, WebSocket(socket))
+            end
+        end
     end
+
     db.client_state = CONNECTED
     nothing
 end
