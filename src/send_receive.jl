@@ -1,6 +1,5 @@
 import CBOR: decode, encode
 import JSON: json, parse
-# import JSON3: write, read
 import MsgPack: pack, unpack
 import UUIDs: uuid4
 
