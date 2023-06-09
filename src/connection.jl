@@ -38,12 +38,11 @@ function connect(db::Surreal; timeout::Real=10.0)
     db.ws_ch = Channel{WebSocket}(db.npool)
     @sync begin
         for _ in 1:db.npool
-            @spawn begin
-                task = @spawn openraw("GET", db.url, generate_header())
-                res = timedwait(()->istaskdone(task),timeout, pollint=0.01) #:ok or :timeout
-                if res == :timed_out 
-                    throw(TimeoutError("Connection timed out. Check your url($(db.url)). Or set timeout($(timeout) sec) to larger value and try again."))
-                end 
+            task = @spawn openraw("GET", db.url, generate_header())
+            res = timedwait(()->istaskdone(task),timeout, pollint=0.01) #:ok or :timeout
+            if res == :timed_out 
+                throw(TimeoutError("Connection timed out. Check your url($(db.url)). Or set timeout($(timeout) sec) to larger value and try again."))
+            else #res == :ok
                 @static VERSION ≥ v"1.7" && errormonitor(task)
                 socket, _ = fetch(task)
                 put!(db.ws_ch, WebSocket(socket))
