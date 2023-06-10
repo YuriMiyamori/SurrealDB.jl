@@ -5,13 +5,6 @@ end
 Base.showerror(io::IO, e::TimeoutError) = print(io, e.msg)
 
 
-function check_format(format::Symbol)::Nothing
-    if format ∉(:json, :msgpack, :cbor)
-        throw(ArgumentError("format must be :json or :msgpack or :cbor"))
-    end
-end
-
-
 function generate_header()
     [   "Upgrade" => "websocket",
         "Connection" => "Upgrade",

@@ -253,21 +253,6 @@ function delete(db::Surreal; thing::String)
 end
 
 """
-    set_format(db::Surreal, format::String)
-
-set format for transmission
-# Arguments
-`format`: The format to use for transmission. :json or :cbor
-"""
-function set_format(db::Surreal, format::Symbol)::Nothing
-    check_format(format)
-    tasks = [@spawn send_receive(db, method="format", params=(format, )) for _ in 1:db.npool]
-    @static VERSION ≥ v"1.7" && errormonitor.(tasks)
-    fetch.(tasks)
-    db.format = format
-    nothing
-end
-"""
     info(db::Surreal)
 
 Retreive info about the current Surreal instance.
