@@ -20,7 +20,6 @@ mutable struct Surreal
     token::Union{Nothing, String}
     client_state::ConnectionState
     ws_ch ::Union{Nothing, Channel{WebSocket}}
-    format::Symbol
     npool::Int
 end
 
@@ -47,7 +46,6 @@ function Surreal(url::String; npool=1)::Surreal
         nothing,
         CONNECTING,
         nothing,
-        :json,
         npool
     )
 end

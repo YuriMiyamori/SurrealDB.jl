@@ -1,8 +1,5 @@
-import CBOR: decode, encode
 import JSON: json, parse
-import MsgPack: pack, unpack
 import UUIDs: uuid4
-
 
 
 """
@@ -33,28 +30,20 @@ function send_receive(db::Surreal; method::String, params::Union{Nothing, Tuple,
         throw(ErrorException("Not connected to Surreal server."))
     end
 
-    check_format(db.format)
+    # TODO
     # typed_params = type_annotate(params)
 
+    # set sending data to server as json
+    data_send = isnothing(params) ? Dict("id"=>generate_uuid(), "method"=>method) : Dict("id"=>generate_uuid(), "method"=>method, "params"=>params)
     # take available websocket from channel, if not available, wait for it
     ws = take!(db.ws_ch)
-    # send data to server as json
-    data_send = isnothing(params) ? Dict("id"=>generate_uuid(), "method"=>method) : Dict("id"=>generate_uuid(), "method"=>method, "params"=>params)
     send(ws, json(data_send))
     data_receive = receive(ws)
     # put websocket back to channel
     put!(db.ws_ch, ws)
 
-    # Parse response depending on format
-    response = begin
-        if db.format == :json
-            parse(data_receive)
-        elseif db.format == :msgpack
-            unpack(data_receive)
-        elseif db.format == :cbor
-            decode(data_receive)
-        end
-    end
+    # Parse response
+    response = parse(data_receive)
     # Check response has Error
     haskey(response, "error") && throw(ErrorException(response["error"]["message"]))
     data_send["id"] != response["id"] && throw(ErrorException(
