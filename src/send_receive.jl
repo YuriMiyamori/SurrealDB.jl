@@ -1,5 +1,6 @@
 import JSON: json, parse
 import UUIDs: uuid4
+import Dates: DateTime
 
 
 """
@@ -24,7 +25,7 @@ The response from the Surreal server.
 Exception: If the client is not connected to the Surreal server.
 Exception: If the response contains an error.
 """
-function send_receive(db::Surreal; method::String, params::Union{Nothing, Tuple, AbstractVector}=nothing)::Union{Nothing, String, AbstractDict, Vector{AbstractDict}}
+function send_receive(db::Surreal; method::String, params::Union{Nothing, Tuple, AbstractVector}=nothing)
     # Check Connection State
     if db.client_state != CONNECTED
         throw(ErrorException("Not connected to Surreal server."))
@@ -49,11 +50,69 @@ function send_receive(db::Surreal; method::String, params::Union{Nothing, Tuple,
     data_send["id"] != response["id"] && throw(ErrorException(
         "Response ID does not match request ID. sent id is $(data_send["id"]) but response id is $(response["id"]))"))
 
-    return  response["result"] |> convert_response
+    return  response["result"] |> parse_chain
 end
 
-convert_response(res) = res
-function convert_response(res::Vector)::Union{Vector{AbstractDict}, AbstractDict}
-    length(res) == 1 && return res[1]
-    return convert(Vector{AbstractDict}, res)
+
+"""
+    parse_chain(v::Vector{AbstractDict})
+
+TBW
+"""
+function parse_chain(v::Vector{AbstractDict})
+	if length(v) == 1
+		return parse_chain(v[1])
+	else
+		return parse_chain.(v)
+	end
 end
+
+"""
+    parse_chain(d::AbstractDict)
+
+TBW
+"""
+function parse_chain(d::AbstractDict)
+	for (k, v) in d
+		d[k] = parse_chain(v)
+	end
+	return d
+end
+
+"""
+    parse_chain(s)
+
+TBW
+"""
+function parse_chain(s)
+	tryparse_raw(Float64, s)	|> s ->
+	tryparse_raw(DateTime, s)	|> s ->
+	identity(s)
+end
+
+"""
+    parse_chain(s::AbstractVector)
+
+TBW
+"""
+function parse_chain(s::AbstractVector)
+	parse_chain.(s)
+end
+
+"""
+    tryparse_raw(dist_type::DataType, s::String)::Union{dist_type, String}
+
+TBW
+"""
+function tryparse_raw(dist_type::DataType, s::String)::Union{dist_type, String}
+	res = tryparse(dist_type, s)
+	return res === nothing ? s : res
+end
+
+# match s except for string
+"""
+    tryparse_raw(dist_type::DataType, s)
+
+TBW
+"""
+tryparse_raw(dist_type::DataType, s) = s
