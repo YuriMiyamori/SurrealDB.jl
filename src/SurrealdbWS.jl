@@ -21,7 +21,7 @@ info
 import Base.Threads: @spawn
 import Base64: base64encode
 import HTTP.Sockets: send
-import HTTP.WebSockets: WebSocket, close, receive
+import HTTP.WebSockets: WebSocket, close, receive, isclosed, CloseFrameBody
 import HTTP.openraw
 
 include("surreal.jl")

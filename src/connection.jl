@@ -53,9 +53,10 @@ function close(db::Surreal)::Nothing
     if db.client_state == CONNECTED
         for _ in 1:db.npool
             ws = take!(db.ws_ch)
-            close(ws)
+            @spawn close(ws, CloseFrameBody(1000, ""))
             put!(db.ws_ch, ws)
         end
+        db.ws_ch = nothing
     end
     db.client_state = DISCONNECTED
     nothing
