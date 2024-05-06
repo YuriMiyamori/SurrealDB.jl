@@ -1,6 +1,8 @@
 """
-	signin(db::Surreal; user::String, pass::String)::Union{String, Nothing}
-Signs this connection in to a specific authentication scope.
+`signin(db::Surreal; user::String, pass::String)::Union{String, Nothing}`
+
+Sign this connection in to a specific authentication scope.
+
 # Arguments
 - `user`: username in signin query
 - `pass`: password in signin query
@@ -17,8 +19,10 @@ function signin(db::Surreal; user::String, pass::String)::Nothing
 end
 
 """
-	signup(db::Surreal; user::String, pass::String)::Union{String, Nothing}
-	Signs this connection up to a specific authentication scope.
+`signup(db::Surreal; user::String, pass::String)::Union{String, Nothing}`
+
+Signs this connection up to a specific authentication scope.
+
 #Arguments
 - `user`: username in signup query
 - `pass`: password in signup query
@@ -37,7 +41,8 @@ function signup(db::Surreal; vars::Dict)::Nothing
 end
 
 """
-	authenticate(db::Surreal; token::Union{String, Nothing}=nothing)::Nothing
+`authenticate(db::Surreal; token::Union{String, Nothing}=nothing)::Nothing`
+
 Authenticates the current connection with a JWT token.
 # Arguments
 - `token`: The token to use for the connection.
@@ -59,7 +64,8 @@ function authenticate(db::Surreal; token::Union{String, Nothing}=nothing)::Nothi
 end
 
 """
-invalidate(db::Surreal)::Nothing
+`invalidate(db::Surreal)::Nothing`
+
 invalidate the user's session for the current connection
 # Examples
 ```jldoctest
@@ -76,17 +82,21 @@ function invalidate(db::Surreal)::Nothing
 end
 
 """
-set(db::Surreal; params)::Nothing
-  This method specifies the namespace and database for the current connection
-amples
+`set(db::Surreal; key, value)::Nothing`
+
+Assigns a value as a parameter for this connection.
+# Arguments
+- `key`: The key to assign the value to.
+- `value`: The value to assign.
+# Examples
 ```jldoctest
-julia> let(db,params=("website", "https://surrealdb.com/"))
+julia> set(db,key="lang", value="Julia")
 ```
 """
-function set(db::Surreal; params::Tuple)::Nothing
+function set(db::Surreal; key::String, value::String)::Nothing
 	@sync begin
 		for _ in 1:db.npool
-			@spawn send_receive(db, method="let", params=params,)
+			@spawn send_receive(db, method="let", params=(key,value),)
 		end
 	end
 	nothing
@@ -94,24 +104,27 @@ end
 
 
 """
-unset(db::Surreal; name::String)::Nothing
-  This method specifies the namespace and database for the current connection
-amples
+`unset(db::Surreal; key::String)::Nothing`
+
+unset a assigned parameter for this connection.
+# Arguments
+- `key`: The key to unassign.
+# Examples
 ```jldoctest
-julia> let(db,params=("website", "https://surrealdb.com/"))
+julia> unset(db,key="lang")
 ```
 """
-function unset(db::Surreal; name::String)::Nothing
+function unset(db::Surreal; key::String)::Nothing
 	@sync begin
 		for _ in 1:db.npool
-			@spawn send_receive(db, method="unset", params=(name,))
+			@spawn send_receive(db, method="unset", params=(key,))
 		end
 	end
 	nothing
 end
 
 """
-	use(db::Surreal; namespace::String, database::String)
+`use(db::Surreal; namespace::String, database::String)`
 
 Switch to a specific namespace and database.
 # Arguments
@@ -132,25 +145,21 @@ function use(db::Surreal; namespace::String, database::String)::Nothing
 end
 
 """
-	create(db::Surreal; thing::String, data::Union{Dict, Nothing}=nothing)
-Create a record in the database.
-This function will run the following query in the database:
-create `thing` content `data`
+`create(db::Surreal; thing::String, data::Union{Dict, Nothing}=nothing)`
+
+Creates a record in the database.
 # Arguments
 - `thing`: The table or record ID.
 - `data`: The document / record data to insert.
 # Examples
-```jldoctest
-# Create a record with a random ID
-julia> person = create(db, "person")
-# Create a record with a specific ID
-julia> record = create(db,"person:tobie", Dict(
-	"name"=> "Tobie",
-	"settings"=> Dict(
-		"active"=> true,
-		"marketing"=> true,
-		),
-	)
+###  Create a record with a random ID
+```julia-repl
+julia> create(db, "planet")
+### Create a record with a specific ID
+```julia-repl
+julia> planet = insert(db,thing="planet",data=Dict("name"=>"Earth", "radius"=>6371,
+  "satellites"=>[Dict("name"=>"Moon","radius"=>1737),]))
+```
 """
 function create(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
 	task = @spawn send_receive(db, method="create", params=(thing, data))
@@ -158,25 +167,24 @@ function create(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=n
 end
 
 """
-	insert(db::Surreal; thing::String, data::Union{Dict, Nothing}=nothing)
+`insert(db::Surreal; thing::String, data::Union{Dict, Nothing}=nothing)`
+
 insert a record in the database.
-This function will run the following query in the database:
-insert `thing` content `data`
+
 # Arguments
-- `thing`: The table or record ID.
-- `data`: The document / record data to insert.
+- `thing::String`: The table or record ID.
+- `data::Dict`: The document / record data to insert.
 # Examples
-```jldoctest
-# insert a record with a random ID
-julia> person = insert(db, "person")
-# insert a record with a specific ID
-julia> record = insert(db,"person:tobie", Dict(
-	"name"=> "Tobie",
-	"settings"=> Dict(
-		"active"=> true,
-		"marketing"=> true,
-		),
-	)
+### insert a record with a random ID
+```julia-repl
+julia> planet = insert(db,thing="planet",data=Dict("name"=>"Mars", "radius"=>3376,
+  "satellites"=>[Dict("name"=>"Phobos","radius"=>11.1),Dict("name"=>"Deimos","radius"=>6.2]))
+```
+### insert a record with a specific ID
+```julia-repl
+julia> planet = insert(db,thing="planet:004",data=Dict("name"=>"Mars", "radius"=>3376,
+  "satellites"=>[Dict("name"=>"Phobos","radius"=>11.1),Dict("name"=>"Deimos","radius"=>6.2]))
+```
 """
 function insert(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
 	task = @spawn send_receive(db, method="insert", params=(thing, data))
@@ -184,27 +192,21 @@ function insert(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=n
 end
 
 """
-    merge(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
+`merge(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)`
 
-	merge(db::Surreal; thing::String, data::Union{Dict, Nothing}=nothing)
 merge a record in the database.
-This function will run the following query in the database:
-merge `thing` content `data`
 # Arguments
 - `thing`: The table or record ID.
 - `data`: The document / record data to merge.
 # Examples
-```jldoctest
-# merge a record with a random ID
-julia> person = merge(db, "person")
-# merge a record with a specific ID
-julia> record = merge(db,"person:tobie", Dict(
-	"name"=> "Tobie",
-	"settings"=> Dict(
-		"active"=> true,
-		"marketing"=> true,
-		),
-	)
+### merge a record with all records in a table
+```julia-repl
+julia> planet = merge(db, thing="planet", data=Dict("star"=>"Sun")))
+```
+### merge a record with a specific ID
+```julia-repl
+julia> planet = merge(db, thing="planet:003", data=Dict("star"=>"Sun")))
+```
 """
 function Base.merge(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
 	task = @spawn send_receive(db, method="merge", params=(thing, data))
@@ -224,9 +226,9 @@ select * from `thing`
 # Examples
 ```jldoctest
 # Select all records from a table (or other entity)
-julia> people = select(db, "person")
+julia> planet = select(db, thing="planet")
 # Select a specific record from a table (or other entity)
-julia> person = select(db, "person:h5wxrf2ewk8xjxosxtyc")
+julia> planet = select(db, thing="planet:003")
 ```
 """
 function select(db::Surreal; thing::String)
@@ -276,11 +278,9 @@ The records.
 # Examples
 ```jldoctest
 julia> # Assign the variable on the connection
-julia> result = query(db, sql=r"create person; select * from type::table(\$tb)",vars=Dict("tb"=> "person"))
+julia> result = query(db, sql="select * from type::table(\$tb)",vars=Dict("tb"=> "planet"))
 julia> # Get the first result from the first query
 julia> result[0]["result"][0]
-julia> # Get all of the results from the second query
-julia> result[1]["result"]
 ```
 """
 function query(db::Surreal; sql::String, vars::Union{AbstractDict, Nothing}=nothing)
@@ -312,10 +312,10 @@ julia> person = patch(db, "person:tobie", [
 				])
 ```
 """
-# function patch(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
-	# task = @spawn send_receive(db, method="patch", params=(thing, data))
-	# return fetch(task)
-# end
+function patch(db::Surreal; thing::String, data::Union{AbstractDict, Nothing}=nothing)
+	task = @spawn send_receive(db, method="patch", params=(thing, data))
+	return fetch(task)
+end
 
 """
 	delete(db::Surreal; thing::String)

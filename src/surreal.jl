@@ -9,22 +9,25 @@ mutable struct Surreal
 end
 
 """
-	Surreal(url::String; npool=1)::Surreal
+`Surreal(url::String; npool=1)::Surreal`
 
-	Retuen struct represents a Surreal server.
-	# Constructors
-	```julia 
-	Surreal(url::String)
-	Surreal(url::String, npool=4)
-	```
-	# Keyword arguments
-	- url: The URL of the Surreal server.
-	- npool: The number of connection pool. Default is 1.
-	# Examples
-	```jldoctest
-	db = Surreal("ws://localhost:8000/rpc", npool=20)
-	db = Surreal("http://cloud.surrealdb.com/rpc")
-	```
+Return a Surreal struct represents a Surreal server.
+# Constructors
+```julia-repl
+Surreal(url::String)
+Surreal(url::String, npool=4)
+```
+# Keyword arguments
+- `url`: The URL of the Surreal server.
+- `npool`: The number of connection pool. Default is 1.
+# Examples
+```jldoctest
+julia> db = Surreal("ws://localhost:8000/rpc", npool=20)
+Surreal("ws://localhost:8000/rpc", nothing, SurrealdbWS.CONNECTING, nothing, 20)
+
+julia> db = Surreal("http://cloud.surrealdb.com/rpc")
+Surreal("http://cloud.surrealdb.com/rpc", nothing, SurrealdbWS.CONNECTING, nothing, 1)
+```
 """
 function Surreal(url::String; npool=1)::Surreal
 	return Surreal(
@@ -42,28 +45,29 @@ Apply the function `f` to the result of `Surreal(url, npool)` and close the db
 descriptor upon completion.
 # Examples
 ```jldoctest
-julia> Surreal("ws://localhost:8000/rpc") do db
-			connect(db)
-			signin(db,user="root", pass="root")
-			use(db, namespace="test", database="test")
-			create(db, thing="person",
-					data = Dict("user"=> "me","pass"=> "safe","marketing"=> true,
-								"tags"=> ["python", "documentation"]))
-		end
+julia> Surreal("ws://localhost:8000/rpc", npool=1) do db
+  connect(db)
+	signin(db,user="root", pass="root")
+	use(db, namespace="test", database="test")
+	create(db, thing="person",
+	data = Dict("user"=> "me","pass"=> "safe","marketing"=> true,
+	"tags"=> ["Julia", "documentation"]))
+end
 ```
 """
-function Surreal(f::Function, url::String; npool=1)
+function Surreal(f::Function, url::String; npool=1)::Nothing
 	db = Surreal(url, npool=npool)
 	try
 		f(db)
 	finally
 		close(db)
 	end
+  nothing
 end
 
 """
-	correct_url(url::String)::String
-	Correct the URL to the correct format.
+correct_url(url::String)::String
+Correct the URL to the correct format.
 """
 function correct_url(url::String)::String
 	if occursin("https", url)
