@@ -9,7 +9,9 @@ function generate_header()
   [ "Upgrade" => "websocket",
     "Connection" => "Upgrade",
     "Sec-WebSocket-Key" => base64encode(rand(UInt8, 16)),
-    "Sec-WebSocket-Version" => "13"]
+    "Sec-WebSocket-Version" => "13",
+    "Sec-WebSocket-Protocol"=>"msgpack",
+    ]
 end
 
 """
