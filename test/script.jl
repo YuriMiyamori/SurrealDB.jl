@@ -1,6 +1,9 @@
 import Base.Threads: @spawn
 import RDatasets: dataset
 import Random: rand,seed!
+import NanoDates: NanoDate
+using Dates
+import DataFrames: DataFrame
 
 @testset "open close manually" begin
   db = Surreal(URL)
@@ -13,7 +16,7 @@ import Random: rand,seed!
   @test db.client_state ==  SurrealdbWS.ConnectionState(2)
 end
 
-Surreal(URL, npool=5) do db
+Surreal(URL, npool=1) do db
   @testset "connect" begin
     connect(db, timeout=30)
   end
@@ -73,11 +76,13 @@ end
 
 seed!(42)
 #sync create
-df_boston = dataset("MASS", "Boston")
+df_boston = dataset("MASS", "Boston")# [1:10,:]
 Surreal(URL, npool=1) do db
-  connect(db, timeout=30)
-  signin(db, user="root", pass="root")
-  use(db, namespace="test", database="test")
+  @testset "connection" begin
+    connect(db, timeout=30)
+    signin(db, user="root", pass="root")
+    use(db, namespace="test", database="test")
+  end
 
   @testset "delete" begin
     res = delete(db, thing="price")
@@ -93,34 +98,54 @@ Surreal(URL, npool=1) do db
     @test res === nothing
   end
   @testset "sync create" begin
-    for (i, d) in enumerate(eachrow(df_boston[1:2,:]))
+    for (i, d) in enumerate(eachrow(df_boston))
       data = Dict((names(d) .=> values(d)))
       thing = "price:$(i)"
       res = create(db, thing=thing, data=data)
+    end
+    res = query(db, sql = "SELECT * FROM price;")
+    @tese DataFrame(res["result"]) == df_boston
+  end
+
+  @testset "update" begin
+    res = update(db, thing="price:9999", data=Dict("price"=>1000.0))
+    @test res !== nothing
+    delete(db, thing="price:9999")
+  end
+
+  @testset "insert" begin
+    res = insert(db, thing="price", data=Dict("p2"=>100.0))
+    @test res !== nothing
+    println(res)
+    delete(db, thing=res[1]["id"])
+  end
+
+  @testset "select" begin
+    for i in 1:size(df_boston, 1)
+      thing = "price:$(i)"
+      res = select(db, thing=thing)
       @test res !== nothing
     end
   end
 
-  @testset "insert" begin
-    res = insert(db, thing="price", data=Dict("price2"=>100.0))
-    println(res)
-    @test res !== nothing
-  end
+  @testset "parse_extension" begin
+    res = query(db, sql=
+    """--sql
+    SELECT * FROM <datetime> "2022-06-07T12:24:21.314211Z";
+    """
+    )
+    @test res["result"] == [NanoDate("2022-06-07T12:24:21.314211")]
 
-  @testset "update" begin
-    res = update(db, thing="price", data=Dict("price"=>1000.0))
-    @test res !== nothing
-  end
+    res = query(db, sql=
+    """--sql
+    SELECT * FROM <duration> "1h30m20s1350ms";
+    """
+    )
+    @test res["result"] == [Hour(1)+Minute(30)+Second(20)+Millisecond(1350)]
 
-  # @testset "patch" begin
-  #     res = patch(db, thing="price", 
-  #         data=Dict(
-  #             "city"=> "Boston",
-  #             "tags"=> ["Harrison, D. and Rubinfeld, D.L. (1978)", "house"]
-  #         )
-  #     )
-  #     @test res !== nothing
-  # end
+    # println("df:", df)
+    # @test df == df_boston
+  end
   @testset "merge" begin
     res = merge(db, thing="price", data=Dict("in sale"=>true))
     @test res !== nothing
@@ -128,7 +153,6 @@ Surreal(URL, npool=1) do db
 
   @testset "select" begin
     res = select(db, thing="price:1")
-    println(res)
     @test res !== nothing
   end
 
@@ -167,6 +191,21 @@ Surreal(URL, npool=5) do db
     for val in res
         @test res !== nothing
     end
+  end
+
+  @testset "async select" begin
+    res = []
+    @sync begin
+      for i in 1:size(df_boston, 1)
+        thing = "price:$(i)"
+        push!(res, @spawn select(db, thing=thing))
+      end
+    end
+    res = fetch.(res)
+    for val in res
+      @test res !== nothing
+    end
+    # println(res)
   end
 end
 
