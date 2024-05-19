@@ -48,9 +48,10 @@ function send_receive(db::Surreal; method::String, params::Union{Nothing, Tuple,
 	data_send["id"] != response["id"] && throw(ErrorException(
 		"Response ID does not match request ID. sent id is $(data_send["id"]) but response id is $(response["id"]))"))
 
-	return  response["result"] |> parse_chain
+	return  response["result"]
 end
 
+# parse
 function parse_chain(ext::Extension)
   if ext.type == 1 # TAG_NONE
     return nothing
@@ -83,7 +84,7 @@ function parse_chain(d::AbstractDict)
 	for (k, v) in d
 		d[k] = parse_chain(v)
 	end
-	return d
+	return Dict{String, Any}(d)
 end
 
 function parse_chain(s::AbstractVector)

@@ -285,7 +285,7 @@ julia> result[0]["result"][0]
 """
 function query(db::Surreal; sql::String, vars::Union{AbstractDict, Nothing}=nothing)
 	task = @spawn send_receive(db, method="query", params=(sql, vars))
-	return fetch(task)
+	return fetch(task)[1]["result"] # response is a length 1 array
 end
 
 """

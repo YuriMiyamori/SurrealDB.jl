@@ -1,6 +1,9 @@
 import Base.Threads: @spawn
 import RDatasets: dataset
 import Random: rand,seed!
+import NanoDates: NanoDate
+using Dates
+import DataFrames: DataFrame
 
 @testset "open close manually" begin
   db = Surreal(URL)
@@ -73,7 +76,7 @@ end
 
 seed!(42)
 #sync create
-df_boston = dataset("MASS", "Boston")
+df_boston = dataset("MASS", "Boston")# [1:10,:]
 Surreal(URL, npool=1) do db
   @testset "connection" begin
     connect(db, timeout=30)
@@ -95,23 +98,26 @@ Surreal(URL, npool=1) do db
     @test res === nothing
   end
   @testset "sync create" begin
-    for (i, d) in enumerate(eachrow(df_boston[:,:]))
+    for (i, d) in enumerate(eachrow(df_boston))
       data = Dict((names(d) .=> values(d)))
       thing = "price:$(i)"
       res = create(db, thing=thing, data=data)
-      @test res !== nothing
     end
-  end
-
-  @testset "insert" begin
-    res = insert(db, thing="price", data=Dict("price2"=>100.0))
-    println(res)
-    @test res !== nothing
+    res = query(db, sql = "SELECT * FROM price;")
+    @tese DataFrame(res["result"]) == df_boston
   end
 
   @testset "update" begin
-    res = update(db, thing="price", data=Dict("price"=>1000.0))
+    res = update(db, thing="price:9999", data=Dict("price"=>1000.0))
     @test res !== nothing
+    delete(db, thing="price:9999")
+  end
+
+  @testset "insert" begin
+    res = insert(db, thing="price", data=Dict("p2"=>100.0))
+    @test res !== nothing
+    println(res)
+    delete(db, thing=res[1]["id"])
   end
 
   @testset "select" begin
@@ -125,15 +131,20 @@ Surreal(URL, npool=1) do db
   @testset "parse_extension" begin
     res = query(db, sql=
     """--sql
-    SELECT * FROM <datetime> "2022-06-07T12:24:21.314211";
+    SELECT * FROM <datetime> "2022-06-07T12:24:21.314211Z";
     """
     )
+    @test res["result"] == [NanoDate("2022-06-07T12:24:21.314211")]
 
     res = query(db, sql=
     """--sql
     SELECT * FROM <duration> "1h30m20s1350ms";
     """
     )
+    @test res["result"] == [Hour(1)+Minute(30)+Second(20)+Millisecond(1350)]
+
+    # println("df:", df)
+    # @test df == df_boston
   end
   @testset "merge" begin
     res = merge(db, thing="price", data=Dict("in sale"=>true))
@@ -192,9 +203,9 @@ Surreal(URL, npool=5) do db
     end
     res = fetch.(res)
     for val in res
-        @test res !== nothing
+      @test res !== nothing
     end
-    println(res)
+    # println(res)
   end
 end
 
