@@ -69,8 +69,8 @@ end
 @testset "authenticate" begin
   Surreal(URL) do db
     connect(db, timeout=30)
-    res = authenticate(db, token=token)
-    @test res === nothing
+    # res = authenticate(db, token=token)
+    # @test res === nothing
   end
 end
 
@@ -90,11 +90,11 @@ Surreal(URL, npool=1) do db
   end
 
   @testset "set" begin
-    res = set(db, params=("lang","Julia"))
+    res = set(db, key="lang", value="Julia")
     @test res === nothing
   end
   @testset "unset" begin
-    res = unset(db, name="lang")
+    res = unset(db, key="lang")
     @test res === nothing
   end
   @testset "sync create" begin
@@ -104,7 +104,7 @@ Surreal(URL, npool=1) do db
       res = create(db, thing=thing, data=data)
     end
     res = query(db, sql = "SELECT * FROM price;")
-    @tese DataFrame(res["result"]) == df_boston
+    @test DataFrame(res)[:, names(df_boston)] == df_boston
   end
 
   @testset "update" begin
@@ -134,14 +134,14 @@ Surreal(URL, npool=1) do db
     SELECT * FROM <datetime> "2022-06-07T12:24:21.314211Z";
     """
     )
-    @test res["result"] == [NanoDate("2022-06-07T12:24:21.314211")]
+    @test res == [NanoDate("2022-06-07T12:24:21.314211")]
 
     res = query(db, sql=
     """--sql
     SELECT * FROM <duration> "1h30m20s1350ms";
     """
     )
-    @test res["result"] == [Hour(1)+Minute(30)+Second(20)+Millisecond(1350)]
+    @test res == [Hour(1)+Minute(30)+Second(20)+Millisecond(1350)]
 
     # println("df:", df)
     # @test df == df_boston

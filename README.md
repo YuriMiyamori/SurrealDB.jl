@@ -19,26 +19,21 @@ Pkg.add("SurrealdbWS")
 ### Do-Block Syntax
 ```julia
 using SurrealdbWS
-Surreal("ws://localhost:8000/rpc") do db
-    connect(db)
-    signin(db, user="root", pass="root")
-    use(db, namespace="test", database="test")
-    create(db, thing="person",
-            data = Dict("user"=> "Myra Eggleston",
-                        "email"=> "eggleston@domain.com",
-                        "marketing"=> true,
-                        "tags"=> ["Julialang", "documentation", "CFD"]
-                        )
-                    )
-    create(db, thing="person",
-            data = Dict("user"=> "Domenico Risi",
-                        "email"=> "domenico.risi@domain.com",
-                        "marketing"=> false,
-                        "tags"=> ["julialang", "bioinformatics"],
-                        )
-        )
-    change(db, thing="person",data = Dict("computer science"=> true,))
-    selcet(db, thing="person")
+res = Surreal("ws://localhost:8000/rpc") do db
+  connect(db)
+  signin(db, user="root", pass="root")
+  use(db, namespace="test", database="test")
+  create(db, thing="planet", data=Dict("name"=>"Earth","radius"=>6371))
+  create(db, thing="planet", data=Dict("name"=>"Mars","radius"=>3389))
+  create(db, thing="planet", data=Dict("name"=>"Jupiter","radius"=>58232))
+  merge(db, thing="planet", data=Dict("Star"=>"Sun"))
+  query(db, sql=
+  """
+  --sql
+  SELECT * FROM planet WHERE radius<10_000;
+  """
+  )
+  res
 end
 ```
 
