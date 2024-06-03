@@ -174,7 +174,7 @@ end
 
 # async create
 seed!(43)
-Surreal(URL, npool=5) do db
+Surreal(URL, npool=15) do db
   connect(db, timeout=30)
   signin(db, user="root", pass="root")
   use(db, namespace="test", database="test")
